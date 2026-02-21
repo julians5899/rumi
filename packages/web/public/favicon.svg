@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- House body (deep purple) -->
+  <rect x="8" y="32" width="38" height="30" rx="3" fill="#5B3A6B"/>
+  <!-- House roof -->
+  <path d="M2 34 L27 10 L52 34 Z" fill="#5B3A6B"/>
+  <!-- Chimney -->
+  <rect x="12" y="14" width="8" height="14" fill="#5B3A6B"/>
+  <!-- Roof outline (white) -->
+  <path d="M5 34 L27 13 L49 34" stroke="#FDF8FB" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Dot (mauve, brand accent) -->
+  <circle cx="50" cy="14" r="12" fill="#C06E9E"/>
+</svg>

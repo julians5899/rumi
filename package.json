@@ -1,0 +1,54 @@
+{
+  "name": "rumi",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Platform for connecting landlords, tenants and roommates",
+  "workspaces": [
+    "packages/shared",
+    "packages/db",
+    "packages/api",
+    "packages/web",
+    "packages/infra"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:shared": "npm run build -w @rumi/shared",
+    "build:db": "npm run build -w @rumi/db",
+    "build:api": "npm run build -w @rumi/api",
+    "build:web": "npm run build -w @rumi/web",
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w @rumi/api\" \"npm run dev -w @rumi/web\"",
+    "dev:api": "npm run dev -w @rumi/api",
+    "dev:web": "npm run dev -w @rumi/web",
+    "test": "npm run test --workspaces --if-present",
+    "test:ci": "npm run test -- --ci --coverage",
+    "lint": "eslint 'packages/*/src/**/*.{ts,tsx}'",
+    "lint:fix": "eslint 'packages/*/src/**/*.{ts,tsx}' --fix",
+    "format": "prettier --write 'packages/*/src/**/*.{ts,tsx,json,css}'",
+    "format:check": "prettier --check 'packages/*/src/**/*.{ts,tsx,json,css}'",
+    "db:generate": "npm run generate -w @rumi/db",
+    "db:migrate": "npm run migrate -w @rumi/db",
+    "db:seed": "npm run seed -w @rumi/db",
+    "typecheck": "tsc --build",
+    "clean": "rm -rf packages/*/dist packages/*/.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^22.0.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.4.0",
+    "ts-jest": "^29.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

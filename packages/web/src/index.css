@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --color-rumi-primary: #C06E9E;
+  --color-rumi-primary-light: #D4A0BE;
+  --color-rumi-primary-dark: #A45882;
+  --color-rumi-accent: #5B3A6B;
+  --color-rumi-accent-light: #7B5A8B;
+  --color-rumi-success: #10B981;
+  --color-rumi-danger: #EF4444;
+  --color-rumi-warning: #F59E0B;
+  --color-rumi-bg: #FDF8FB;
+  --color-rumi-text: #2D1B36;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-rumi-bg);
+  color: var(--color-rumi-text);
+}

@@ -1,0 +1,36 @@
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import * as usersService from './users.service';
+
+export async function getMeHandler(request: FastifyRequest, reply: FastifyReply) {
+  const user = await usersService.getUserBySub(request.user!.sub);
+  if (!user) {
+    return reply.status(404).send({ error: 'Not Found', message: 'Usuario no encontrado', statusCode: 404 });
+  }
+  return reply.send(user);
+}
+
+export async function updateMeHandler(request: FastifyRequest, reply: FastifyReply) {
+  const user = await usersService.updateUser(request.user!.sub, request.body as Record<string, unknown>);
+  return reply.send(user);
+}
+
+export async function updateSeekingModeHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { seekingMode } = request.body as { seekingMode: string };
+  const user = await usersService.updateSeekingMode(request.user!.sub, seekingMode);
+  return reply.send(user);
+}
+
+export async function getPublicProfileHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const profile = await usersService.getPublicProfile(id);
+  if (!profile) {
+    return reply.status(404).send({ error: 'Not Found', message: 'Usuario no encontrado', statusCode: 404 });
+  }
+  return reply.send(profile);
+}
+
+export async function getUserRatingsHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const ratings = await usersService.getUserRatings(id);
+  return reply.send(ratings);
+}
