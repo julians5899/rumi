@@ -20,7 +20,7 @@ export function LoginPage() {
 
     try {
       const res = await loginUser({ email, password });
-      setUser({ sub: res.user.cognitoSub, email: res.user.email, token: res.token });
+      setUser({ sub: res.user.cognitoSub, userId: res.user.id, email: res.user.email, token: res.token });
       navigate('/', { replace: true });
     } catch (err: unknown) {
       const msg =

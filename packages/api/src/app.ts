@@ -7,6 +7,7 @@ import {
 import corsPlugin from './plugins/cors';
 import authPlugin from './plugins/auth';
 import errorHandlerPlugin from './plugins/error-handler';
+import websocketPlugin from './plugins/websocket';
 import { registerRoutes } from './routes';
 
 export async function buildApp() {
@@ -23,6 +24,7 @@ export async function buildApp() {
   await app.register(corsPlugin);
   await app.register(authPlugin);
   await app.register(errorHandlerPlugin);
+  await app.register(websocketPlugin);
 
   // Register routes
   await app.register(registerRoutes, { prefix: '/api/v1' });

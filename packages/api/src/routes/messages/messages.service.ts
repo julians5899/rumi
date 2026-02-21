@@ -1,4 +1,5 @@
 import { getPrisma } from '../../lib/prisma';
+import { pushToUser } from '../../plugins/websocket';
 
 export async function getConversations(cognitoSub: string) {
   const prisma = getPrisma();
@@ -49,5 +50,21 @@ export async function sendMessage(cognitoSub: string, conversationId: string, co
     prisma.message.create({ data: { conversationId, senderId: user.id, content } }),
     prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: new Date() } }),
   ]);
+
+  // Push to recipient via WebSocket if connected
+  const recipientId =
+    conversation.participant1Id === user.id ? conversation.participant2Id : conversation.participant1Id;
+
+  pushToUser(recipientId, {
+    type: 'new_message',
+    message: {
+      id: message.id,
+      conversationId,
+      senderId: user.id,
+      content,
+      createdAt: message.createdAt,
+    },
+  });
+
   return message;
 }

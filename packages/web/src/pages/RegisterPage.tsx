@@ -50,7 +50,7 @@ export function RegisterPage() {
         gender: (form.gender as 'MALE' | 'FEMALE' | 'NON_BINARY' | 'OTHER' | 'PREFER_NOT_TO_SAY') || null,
       };
       const res = await registerUser(payload);
-      setUser({ sub: res.user.cognitoSub, email: res.user.email, token: res.token });
+      setUser({ sub: res.user.cognitoSub, userId: res.user.id, email: res.user.email, token: res.token });
       navigate('/', { replace: true });
     } catch (err: unknown) {
       const msg =
