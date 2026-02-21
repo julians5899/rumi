@@ -1,9 +1,9 @@
 import fp from 'fastify-plugin';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyError } from 'fastify';
 import { ZodError } from 'zod';
 
 async function errorHandlerPlugin(app: FastifyInstance) {
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error: FastifyError, _request, reply) => {
     // Zod validation errors
     if (error instanceof ZodError) {
       return reply.status(400).send({
@@ -29,7 +29,7 @@ async function errorHandlerPlugin(app: FastifyInstance) {
 
     // Prisma known errors
     if (error.name === 'PrismaClientKnownRequestError') {
-      const prismaError = error as { code?: string; meta?: Record<string, unknown> };
+      const prismaError = error as FastifyError & { code?: string; meta?: Record<string, unknown> };
 
       if (prismaError.code === 'P2002') {
         return reply.status(409).send({

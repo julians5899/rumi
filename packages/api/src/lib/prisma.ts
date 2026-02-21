@@ -1,4 +1,4 @@
-import { PrismaClient } from '@rumi/db';
+import { PrismaClient } from '@prisma/client';
 
 let prisma: PrismaClient;
 

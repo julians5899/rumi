@@ -1,5 +1,6 @@
 import { getPrisma } from '../../lib/prisma';
 import { getPresignedUploadUrl, getImageUrl } from '../../lib/s3';
+import type { Prisma } from '@prisma/client';
 
 export async function createProperty(cognitoSub: string, data: Record<string, unknown>) {
   const prisma = getPrisma();
@@ -35,13 +36,13 @@ export async function listProperties(filters: Record<string, unknown>, userSub?:
         where: { userId: user.id },
         select: { propertyId: true },
       });
-      where.id = { notIn: viewedIds.map((v) => v.propertyId) };
+      where.id = { notIn: viewedIds.map((v: { propertyId: string }) => v.propertyId) };
     }
   }
 
   const [data, total] = await Promise.all([
     prisma.property.findMany({
-      where: where as Parameters<typeof prisma.property.findMany>[0],
+      where: where as Prisma.PropertyWhereInput,
       include: {
         images: { orderBy: { order: 'asc' } },
         owner: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
@@ -50,7 +51,7 @@ export async function listProperties(filters: Record<string, unknown>, userSub?:
       skip,
       take: limit,
     }),
-    prisma.property.count({ where: where as Parameters<typeof prisma.property.count>[0] }),
+    prisma.property.count({ where: where as Prisma.PropertyWhereInput }),
   ]);
 
   return { data, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };

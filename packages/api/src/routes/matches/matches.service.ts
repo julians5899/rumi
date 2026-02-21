@@ -9,14 +9,14 @@ export async function getMatches(cognitoSub: string) {
     orderBy: { createdAt: 'desc' },
   });
 
-  const matchedUserIds = matches.map((m) => (m.user1Id === user.id ? m.user2Id : m.user1Id));
+  const matchedUserIds = matches.map((m: { user1Id: string; user2Id: string }) => (m.user1Id === user.id ? m.user2Id : m.user1Id));
   const users = await prisma.user.findMany({
     where: { id: { in: matchedUserIds } },
     select: { id: true, firstName: true, lastName: true, avatarUrl: true, roommateProfile: true },
   });
-  const userMap = new Map(users.map((u) => [u.id, u]));
+  const userMap = new Map(users.map((u: { id: string }) => [u.id, u]));
 
-  return matches.map((m) => {
+  return matches.map((m: { id: string; user1Id: string; user2Id: string; createdAt: Date }) => {
     const matchedUserId = m.user1Id === user.id ? m.user2Id : m.user1Id;
     return { id: m.id, createdAt: m.createdAt, matchedUser: userMap.get(matchedUserId) || null };
   });

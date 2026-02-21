@@ -24,7 +24,7 @@ export async function getCandidates(cognitoSub: string, limit: number) {
     where: { senderId: user.id },
     select: { receiverId: true },
   });
-  const swipedIds = swiped.map((s) => s.receiverId);
+  const swipedIds = swiped.map((s: { receiverId: string }) => s.receiverId);
 
   return prisma.user.findMany({
     where: {

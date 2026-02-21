@@ -14,7 +14,7 @@ export async function getConversations(cognitoSub: string) {
     orderBy: { lastMessageAt: { sort: 'desc', nulls: 'last' } },
   });
 
-  return conversations.map((c) => {
+  return conversations.map((c: (typeof conversations)[number]) => {
     const otherParticipant = c.participant1Id === user.id ? c.participant2 : c.participant1;
     const lastMessage = c.messages[0] || null;
     return {
