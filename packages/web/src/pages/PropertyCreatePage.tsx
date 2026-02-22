@@ -3,6 +3,13 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { t } from '../i18n/es';
 import apiClient from '../services/api-client';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
+import { Skeleton } from '../components/ui/Skeleton';
+import { IconBuilding, IconMoney, IconMapPin, IconCheck } from '../components/ui/Icons';
 
 const PropertyMap = lazy(() => import('../components/ui/PropertyMap'));
 
@@ -38,8 +45,12 @@ const DEPARTMENTS = [
   'Valle del Cauca', 'Vaupes', 'Vichada',
 ];
 
-// Default map center: Bogota
 const DEFAULT_CENTER: [number, number] = [4.6486, -74.0628];
+
+const inputClass =
+  'w-full px-4 py-3 rounded-xl border-2 border-rumi-primary-light/30 bg-white text-sm text-rumi-text placeholder:text-rumi-text/30 focus:outline-none focus:border-rumi-primary focus:ring-4 focus:ring-rumi-primary/10 transition-all duration-200';
+
+const labelClass = 'block text-sm font-medium text-rumi-text/70 mb-1.5';
 
 export function PropertyCreatePage() {
   const navigate = useNavigate();
@@ -136,82 +147,89 @@ export function PropertyCreatePage() {
     }
   };
 
-  const inputClass =
-    'w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rumi-primary/40 focus:border-rumi-primary outline-none text-sm';
-
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-rumi-text mb-2">{t.nav.publishProperty}</h1>
-      <p className="text-sm text-rumi-text/60 mb-6">{t.property.createSubtitle}</p>
+      <PageHeader
+        title={t.nav.publishProperty}
+        subtitle={t.property.createSubtitle}
+        backTo="/properties"
+      />
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>
-      )}
+      <ErrorAlert message={error} className="mb-4" />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Basic Info */}
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-rumi-primary-light/20 space-y-4">
-          <h2 className="text-lg font-semibold text-rumi-text">Informacion basica</h2>
+        <Card variant="bordered" padding="md" className="space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rumi-primary/10 to-rumi-accent/10 flex items-center justify-center">
+              <IconBuilding className="w-4 h-4 text-rumi-primary" />
+            </div>
+            <h2 className="text-lg font-semibold text-rumi-text">Informacion basica</h2>
+          </div>
 
           <div>
-            <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.title} *</label>
+            <label className={labelClass}>{t.property.title} *</label>
             <input
               {...register('title', { required: 'Requerido', minLength: { value: 5, message: 'Minimo 5 caracteres' }, maxLength: 200 })}
               className={inputClass}
               placeholder="Ej: Hermoso apartamento en Chapinero"
             />
-            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
+            {errors.title && <p className="text-xs text-rumi-danger mt-1.5">{errors.title.message}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.description} *</label>
+            <label className={labelClass}>{t.property.description} *</label>
             <textarea
               {...register('description', { required: 'Requerido', minLength: { value: 20, message: 'Minimo 20 caracteres' }, maxLength: 5000 })}
               rows={4}
               className={`${inputClass} resize-none`}
               placeholder="Describe tu inmueble con detalle..."
             />
-            {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
+            {errors.description && <p className="text-xs text-rumi-danger mt-1.5">{errors.description.message}</p>}
           </div>
 
-          {/* Type + Listing */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.type} *</label>
-              <select {...register('propertyType', { required: true })} className={`${inputClass} bg-white`}>
+              <label className={labelClass}>{t.property.type} *</label>
+              <select {...register('propertyType', { required: true })} className={`${inputClass} appearance-none`}>
                 {PROPERTY_TYPES.map((pt) => (
                   <option key={pt} value={pt}>{t.property.types[pt]}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.listingType} *</label>
-              <select {...register('listingType', { required: true })} className={`${inputClass} bg-white`}>
+              <label className={labelClass}>{t.property.listingType} *</label>
+              <select {...register('listingType', { required: true })} className={`${inputClass} appearance-none`}>
                 {LISTING_TYPES.map((lt) => (
                   <option key={lt} value={lt}>{t.property.listingTypes[lt]}</option>
                 ))}
               </select>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Price & Specs */}
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-rumi-primary-light/20 space-y-4">
-          <h2 className="text-lg font-semibold text-rumi-text">Precio y caracteristicas</h2>
+        <Card variant="bordered" padding="md" className="space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rumi-primary/10 to-rumi-accent/10 flex items-center justify-center">
+              <IconMoney className="w-4 h-4 text-rumi-primary" />
+            </div>
+            <h2 className="text-lg font-semibold text-rumi-text">Precio y caracteristicas</h2>
+          </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.price} (COP) *</label>
+              <label className={labelClass}>{t.property.price} (COP) *</label>
               <input
                 type="number"
                 {...register('price', { required: 'Requerido', min: { value: 1, message: 'Debe ser mayor a 0' } })}
                 className={inputClass}
                 placeholder="Ej: 2500000"
               />
-              {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price.message}</p>}
+              {errors.price && <p className="text-xs text-rumi-danger mt-1.5">{errors.price.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.bedrooms} *</label>
+              <label className={labelClass}>{t.property.bedrooms} *</label>
               <input
                 type="number"
                 min={0}
@@ -220,10 +238,10 @@ export function PropertyCreatePage() {
                 className={inputClass}
                 placeholder="3"
               />
-              {errors.bedrooms && <p className="text-red-500 text-xs mt-1">{errors.bedrooms.message}</p>}
+              {errors.bedrooms && <p className="text-xs text-rumi-danger mt-1.5">{errors.bedrooms.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.bathrooms} *</label>
+              <label className={labelClass}>{t.property.bathrooms} *</label>
               <input
                 type="number"
                 min={1}
@@ -232,12 +250,12 @@ export function PropertyCreatePage() {
                 className={inputClass}
                 placeholder="2"
               />
-              {errors.bathrooms && <p className="text-red-500 text-xs mt-1">{errors.bathrooms.message}</p>}
+              {errors.bathrooms && <p className="text-xs text-rumi-danger mt-1.5">{errors.bathrooms.message}</p>}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.area}</label>
+            <label className={labelClass}>{t.property.area}</label>
             <input
               type="number"
               {...register('area')}
@@ -245,34 +263,39 @@ export function PropertyCreatePage() {
               placeholder="Ej: 85"
             />
           </div>
-        </div>
+        </Card>
 
         {/* Location */}
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-rumi-primary-light/20 space-y-4">
-          <h2 className="text-lg font-semibold text-rumi-text">Ubicacion</h2>
+        <Card variant="bordered" padding="md" className="space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rumi-primary/10 to-rumi-accent/10 flex items-center justify-center">
+              <IconMapPin className="w-4 h-4 text-rumi-primary" />
+            </div>
+            <h2 className="text-lg font-semibold text-rumi-text">Ubicacion</h2>
+          </div>
 
           <div>
-            <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.address} *</label>
+            <label className={labelClass}>{t.property.address} *</label>
             <input
               {...register('address', { required: 'Requerido', minLength: { value: 5, message: 'Minimo 5 caracteres' } })}
               className={inputClass}
               placeholder="Ej: Calle 63 #7-20"
             />
-            {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message}</p>}
+            {errors.address && <p className="text-xs text-rumi-danger mt-1.5">{errors.address.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.city} *</label>
+              <label className={labelClass}>{t.property.city} *</label>
               <input
                 {...register('city', { required: 'Requerido', minLength: 2 })}
                 className={inputClass}
                 placeholder="Ej: Bogota"
               />
-              {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city.message}</p>}
+              {errors.city && <p className="text-xs text-rumi-danger mt-1.5">{errors.city.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.neighborhood}</label>
+              <label className={labelClass}>{t.property.neighborhood}</label>
               <input
                 {...register('neighborhood')}
                 className={inputClass}
@@ -280,17 +303,17 @@ export function PropertyCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-rumi-text/70 mb-1">{t.property.department} *</label>
+              <label className={labelClass}>{t.property.department} *</label>
               <select
                 {...register('department', { required: 'Requerido' })}
-                className={`${inputClass} bg-white`}
+                className={`${inputClass} appearance-none`}
               >
                 <option value="">-- Seleccionar --</option>
                 {DEPARTMENTS.map((dep) => (
                   <option key={dep} value={dep}>{dep}</option>
                 ))}
               </select>
-              {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message}</p>}
+              {errors.department && <p className="text-xs text-rumi-danger mt-1.5">{errors.department.message}</p>}
             </div>
           </div>
 
@@ -298,18 +321,19 @@ export function PropertyCreatePage() {
           <div className="mt-2">
             <div className="flex items-center gap-3 mb-2">
               <label className="block text-sm font-medium text-rumi-text/70">{t.map.location}</label>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={handleGeocode}
-                disabled={geocoding}
-                className="px-3 py-1.5 text-xs font-medium bg-rumi-primary/10 text-rumi-primary rounded-lg hover:bg-rumi-primary/20 transition-colors disabled:opacity-50"
+                loading={geocoding}
               >
-                {geocoding ? t.common.loading : t.map.searchOnMap}
-              </button>
+                {t.map.searchOnMap}
+              </Button>
             </div>
             <p className="text-xs text-rumi-text/40 mb-2">{t.map.clickToPlace}</p>
-            <div className="rounded-lg overflow-hidden">
-              <Suspense fallback={<div className="h-[250px] bg-rumi-primary/5 rounded-lg animate-pulse" />}>
+            <div className="rounded-xl overflow-hidden border-2 border-rumi-primary-light/20">
+              <Suspense fallback={<Skeleton variant="rect" className="!h-[250px]" />}>
                 <PropertyMap
                   markers={pinPosition ? [{
                     id: 'new-property',
@@ -324,50 +348,57 @@ export function PropertyCreatePage() {
               </Suspense>
             </div>
             {pinPosition && (
-              <p className="text-xs text-rumi-text/40 mt-1">
+              <p className="text-xs text-rumi-text/40 mt-1.5">
                 {t.map.coordinates}: {pinPosition[0].toFixed(6)}, {pinPosition[1].toFixed(6)}
               </p>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Amenities */}
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-rumi-primary-light/20">
-          <h2 className="text-lg font-semibold text-rumi-text mb-4">{t.property.amenities}</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {AMENITIES.map((amenity) => (
-              <button
-                key={amenity}
-                type="button"
-                onClick={() => toggleAmenity(amenity)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors text-left ${
-                  selectedAmenities.includes(amenity)
-                    ? 'bg-rumi-primary/10 border-rumi-primary text-rumi-primary'
-                    : 'border-gray-300 text-rumi-text/60 hover:border-rumi-primary/40'
-                }`}
-              >
-                {t.property.amenityLabels[amenity as keyof typeof t.property.amenityLabels] || amenity}
-              </button>
-            ))}
+        <Card variant="bordered" padding="md">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rumi-primary/10 to-rumi-accent/10 flex items-center justify-center">
+              <IconCheck className="w-4 h-4 text-rumi-primary" />
+            </div>
+            <h2 className="text-lg font-semibold text-rumi-text">{t.property.amenities}</h2>
           </div>
-        </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {AMENITIES.map((amenity) => {
+              const isSelected = selectedAmenities.includes(amenity);
+              return (
+                <button
+                  key={amenity}
+                  type="button"
+                  onClick={() => toggleAmenity(amenity)}
+                  className="text-left"
+                >
+                  <Badge
+                    variant={isSelected ? 'primary' : 'neutral'}
+                    size="md"
+                    icon={isSelected ? <IconCheck className="w-3.5 h-3.5" /> : undefined}
+                    className={`w-full justify-start cursor-pointer transition-all duration-200 ${
+                      isSelected
+                        ? 'ring-2 ring-rumi-primary/20'
+                        : 'hover:ring-2 hover:ring-rumi-primary-light/30'
+                    }`}
+                  >
+                    {t.property.amenityLabels[amenity as keyof typeof t.property.amenityLabels] || amenity}
+                  </Badge>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
 
         {/* Submit */}
         <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 py-3 bg-rumi-primary text-white font-semibold rounded-lg hover:bg-rumi-primary/90 transition-colors disabled:opacity-50"
-          >
+          <Button type="submit" loading={saving} className="flex-1" size="lg">
             {saving ? t.property.publishing : t.nav.publishProperty}
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="px-6 py-3 border border-gray-300 text-rumi-text font-semibold rounded-lg hover:bg-gray-50 transition-colors"
-          >
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => navigate(-1)} size="lg">
             {t.common.cancel}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

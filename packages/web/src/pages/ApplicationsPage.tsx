@@ -2,6 +2,16 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { t } from '../i18n/es';
 import apiClient from '../services/api-client';
+import { PageHeader } from '../components/ui/PageHeader';
+import { TabBar } from '../components/ui/TabBar';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Avatar } from '../components/ui/Avatar';
+import { LoadingState } from '../components/ui/LoadingState';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
+import { IconClipboard, IconBuilding, IconCheck, IconX, IconChevronRight } from '../components/ui/Icons';
 
 interface SentApplication {
   id: string;
@@ -37,11 +47,11 @@ interface ReceivedApplication {
 
 type Tab = 'sent' | 'received';
 
-const statusColors: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-700',
-  ACCEPTED: 'bg-green-100 text-green-700',
-  REJECTED: 'bg-red-100 text-red-700',
-  WITHDRAWN: 'bg-gray-100 text-gray-500',
+const statusVariant: Record<string, 'warning' | 'success' | 'danger' | 'neutral'> = {
+  PENDING: 'warning',
+  ACCEPTED: 'success',
+  REJECTED: 'danger',
+  WITHDRAWN: 'neutral',
 };
 
 const statusLabels: Record<string, string> = {
@@ -61,14 +71,6 @@ function formatDate(dateStr: string): string {
     month: 'short',
     year: 'numeric',
   });
-}
-
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[status] || 'bg-gray-100 text-gray-500'}`}>
-      {statusLabels[status] || status}
-    </span>
-  );
 }
 
 export function ApplicationsPage() {
@@ -126,116 +128,78 @@ export function ApplicationsPage() {
 
   const isLoading = tab === 'sent' ? loadingSent : loadingReceived;
 
+  const tabs = [
+    { key: 'sent', label: t.application.sent, count: sent.length > 0 ? sent.length : undefined },
+    { key: 'received', label: t.application.received, count: received.length > 0 ? received.length : undefined },
+  ];
+
   return (
     <div className="max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-rumi-text">{t.nav.applications}</h1>
-      </div>
+      <PageHeader title={t.nav.applications} />
 
-      {/* Tab bar */}
-      <div className="flex border-b border-gray-200 mb-6">
-        <button
-          onClick={() => setTab('sent')}
-          className={`flex-1 py-3 text-sm font-medium text-center border-b-2 transition-colors ${
-            tab === 'sent'
-              ? 'border-rumi-primary text-rumi-primary'
-              : 'border-transparent text-rumi-text/50 hover:text-rumi-text/70'
-          }`}
-        >
-          {t.application.sent}
-          {sent.length > 0 && (
-            <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-rumi-primary/10 text-rumi-primary">
-              {sent.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setTab('received')}
-          className={`flex-1 py-3 text-sm font-medium text-center border-b-2 transition-colors ${
-            tab === 'received'
-              ? 'border-rumi-primary text-rumi-primary'
-              : 'border-transparent text-rumi-text/50 hover:text-rumi-text/70'
-          }`}
-        >
-          {t.application.received}
-          {received.length > 0 && (
-            <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-rumi-primary/10 text-rumi-primary">
-              {received.length}
-            </span>
-          )}
-        </button>
-      </div>
+      <TabBar
+        tabs={tabs}
+        activeTab={tab}
+        onChange={(key) => setTab(key as Tab)}
+        className="mb-6"
+      />
 
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center mb-6">{error}</div>
-      )}
+      <ErrorAlert message={error} className="mb-6" />
 
-      {/* Loading */}
-      {isLoading && (
-        <div className="flex justify-center py-12">
-          <p className="text-rumi-text/50 text-sm">{t.common.loading}</p>
-        </div>
-      )}
+      {isLoading && <LoadingState text={t.common.loading} />}
 
       {/* ===== SENT TAB ===== */}
       {tab === 'sent' && !loadingSent && (
         <>
           {sent.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-4xl mb-3">📋</p>
-              <p className="text-lg font-medium text-rumi-text/60">{t.application.noSent}</p>
-              <p className="text-sm text-rumi-text/40 mt-1">{t.application.noSentSubtitle}</p>
-              <Link
-                to="/properties"
-                className="inline-block mt-5 px-5 py-2.5 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-              >
-                {t.nav.properties}
-              </Link>
-            </div>
+            <EmptyState
+              icon={<IconClipboard className="w-10 h-10" />}
+              title={t.application.noSent}
+              description={t.application.noSentSubtitle}
+              action={{ label: t.nav.properties, to: '/properties' }}
+            />
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 stagger-children">
               {sent.map((app) => (
-                <div
-                  key={app.id}
-                  className="bg-white rounded-2xl shadow-md border border-rumi-primary-light/20 p-5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <Link
-                        to={`/properties/${app.property.id}`}
-                        className="text-base font-semibold text-rumi-text hover:text-rumi-primary transition-colors"
-                      >
-                        {app.property.title}
-                      </Link>
-                      <p className="text-sm text-rumi-text/50 mt-0.5">
-                        {app.property.city} &bull; ${formatPrice(app.property.price)} COP
-                      </p>
+                <Card key={app.id} variant="elevated" padding="none" className="overflow-hidden">
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          to={`/properties/${app.property.id}`}
+                          className="text-base font-semibold text-rumi-text hover:text-rumi-primary transition-colors"
+                        >
+                          {app.property.title}
+                        </Link>
+                        <p className="text-sm text-rumi-text/50 mt-0.5">
+                          {app.property.city} &bull; ${formatPrice(app.property.price)} COP
+                        </p>
+                      </div>
+                      <Badge variant={statusVariant[app.status] || 'neutral'}>
+                        {statusLabels[app.status] || app.status}
+                      </Badge>
                     </div>
-                    <StatusBadge status={app.status} />
-                  </div>
 
-                  {app.message && (
-                    <div className="mt-3 p-3 bg-rumi-bg/50 rounded-lg">
-                      <p className="text-sm text-rumi-text/70 italic">&ldquo;{app.message}&rdquo;</p>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between mt-3">
-                    <p className="text-xs text-rumi-text/30">
-                      {t.application.appliedOn} {formatDate(app.createdAt)}
-                    </p>
-                    {app.status === 'ACCEPTED' && (
-                      <Link
-                        to={`/applications/${app.id}/workflow`}
-                        className="px-3 py-1.5 text-xs font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-                      >
-                        {t.application.continueProcess} →
-                      </Link>
+                    {app.message && (
+                      <div className="mt-3 p-3 bg-rumi-bg/50 rounded-xl">
+                        <p className="text-sm text-rumi-text/70 italic">&ldquo;{app.message}&rdquo;</p>
+                      </div>
                     )}
+
+                    <div className="flex items-center justify-between mt-3">
+                      <p className="text-xs text-rumi-text/30">
+                        {t.application.appliedOn} {formatDate(app.createdAt)}
+                      </p>
+                      {app.status === 'ACCEPTED' && (
+                        <Link to={`/applications/${app.id}/workflow`}>
+                          <Button variant="primary" size="sm" iconRight={<IconChevronRight className="w-3.5 h-3.5" />}>
+                            {t.application.continueProcess}
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}
@@ -246,39 +210,23 @@ export function ApplicationsPage() {
       {tab === 'received' && !loadingReceived && (
         <>
           {received.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-4xl mb-3">📬</p>
-              <p className="text-lg font-medium text-rumi-text/60">{t.application.noReceived}</p>
-              <p className="text-sm text-rumi-text/40 mt-1">{t.application.noReceivedSubtitle}</p>
-              <Link
-                to="/properties/new"
-                className="inline-block mt-5 px-5 py-2.5 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-              >
-                {t.nav.publishProperty}
-              </Link>
-            </div>
+            <EmptyState
+              icon={<IconBuilding className="w-10 h-10" />}
+              title={t.application.noReceived}
+              description={t.application.noReceivedSubtitle}
+              action={{ label: t.nav.publishProperty, to: '/properties/new' }}
+            />
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 stagger-children">
               {received.map((app) => (
-                <div
-                  key={app.id}
-                  className="bg-white rounded-2xl shadow-md border border-rumi-primary-light/20 p-5"
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Applicant avatar */}
-                    <div className="w-12 h-12 rounded-full bg-rumi-primary/10 flex-shrink-0 flex items-center justify-center text-lg font-bold text-rumi-primary overflow-hidden">
-                      {app.applicant.avatarUrl ? (
-                        <img
-                          src={app.applicant.avatarUrl}
-                          alt={app.applicant.firstName}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        `${app.applicant.firstName[0]}${app.applicant.lastName[0]}`
-                      )}
-                    </div>
+                <Card key={app.id} variant="elevated" padding="none" className="overflow-hidden">
+                  <div className="p-5 flex items-start gap-4">
+                    <Avatar
+                      src={app.applicant.avatarUrl}
+                      name={`${app.applicant.firstName} ${app.applicant.lastName}`}
+                      size="lg"
+                    />
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -295,11 +243,13 @@ export function ApplicationsPage() {
                             </Link>
                           </p>
                         </div>
-                        <StatusBadge status={app.status} />
+                        <Badge variant={statusVariant[app.status] || 'neutral'}>
+                          {statusLabels[app.status] || app.status}
+                        </Badge>
                       </div>
 
                       {app.message && (
-                        <div className="mt-3 p-3 bg-rumi-bg/50 rounded-lg">
+                        <div className="mt-3 p-3 bg-rumi-bg/50 rounded-xl">
                           <p className="text-sm text-rumi-text/70 italic">&ldquo;{app.message}&rdquo;</p>
                         </div>
                       )}
@@ -309,11 +259,10 @@ export function ApplicationsPage() {
                           {t.application.receivedOn} {formatDate(app.createdAt)}
                         </p>
                         {app.status === 'ACCEPTED' && (
-                          <Link
-                            to={`/applications/${app.id}/workflow`}
-                            className="px-3 py-1.5 text-xs font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-                          >
-                            {t.application.continueProcess} →
+                          <Link to={`/applications/${app.id}/workflow`}>
+                            <Button variant="primary" size="sm" iconRight={<IconChevronRight className="w-3.5 h-3.5" />}>
+                              {t.application.continueProcess}
+                            </Button>
                           </Link>
                         )}
                       </div>
@@ -321,25 +270,31 @@ export function ApplicationsPage() {
                       {/* Accept / Reject buttons */}
                       {app.status === 'PENDING' && (
                         <div className="flex gap-2 mt-4">
-                          <button
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={<IconCheck className="w-4 h-4" />}
+                            loading={updatingId === app.id}
                             onClick={() => handleStatusUpdate(app.id, 'ACCEPTED')}
-                            disabled={updatingId === app.id}
-                            className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                            className="!bg-green-600 hover:!bg-green-700"
                           >
-                            {updatingId === app.id ? '...' : `✓ ${t.application.accept}`}
-                          </button>
-                          <button
+                            {t.application.accept}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<IconX className="w-4 h-4" />}
+                            loading={updatingId === app.id}
                             onClick={() => handleStatusUpdate(app.id, 'REJECTED')}
-                            disabled={updatingId === app.id}
-                            className="px-4 py-2 text-sm font-medium border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                            className="!border-red-300 !text-red-600 hover:!bg-red-50"
                           >
-                            {updatingId === app.id ? '...' : `✗ ${t.application.reject}`}
-                          </button>
+                            {t.application.reject}
+                          </Button>
                         </div>
                       )}
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}

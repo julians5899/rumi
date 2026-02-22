@@ -2,6 +2,14 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { t } from '../i18n/es';
 import apiClient from '../services/api-client';
 import { Link } from 'react-router-dom';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Avatar } from '../components/ui/Avatar';
+import { LoadingState } from '../components/ui/LoadingState';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
+import { Modal } from '../components/ui/Modal';
+import { IconHeart, IconX, IconSearch, IconMapPin, IconCalendar, IconMoney } from '../components/ui/Icons';
 
 interface Lifestyle {
   smoking?: boolean;
@@ -35,7 +43,7 @@ function formatBudget(budget: number | string): string {
   return Number(budget).toLocaleString('es-CO');
 }
 
-const SWIPE_THRESHOLD = 100; // px to trigger swipe
+const SWIPE_THRESHOLD = 100;
 
 export function RoommateSwipePage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -46,7 +54,6 @@ export function RoommateSwipePage() {
   const [showMatch, setShowMatch] = useState<Candidate | null>(null);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
 
-  // Touch/drag state
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -131,7 +138,6 @@ export function RoommateSwipePage() {
   const handleTouchEnd = () => {
     if (!isDragging || swiping) return;
     setIsDragging(false);
-
     if (Math.abs(dragOffset.x) > SWIPE_THRESHOLD) {
       handleSwipe(dragOffset.x > 0 ? 'LIKE' : 'PASS');
     } else {
@@ -139,7 +145,6 @@ export function RoommateSwipePage() {
     }
   };
 
-  // Mouse drag handlers (for desktop drag)
   const handleMouseDown = (e: React.MouseEvent) => {
     if (swiping) return;
     dragStart.current = { x: e.clientX, y: e.clientY };
@@ -159,7 +164,6 @@ export function RoommateSwipePage() {
   const handleMouseUp = useCallback(() => {
     if (!isDragging || swiping) return;
     setIsDragging(false);
-
     if (Math.abs(dragOffset.x) > SWIPE_THRESHOLD) {
       handleSwipe(dragOffset.x > 0 ? 'LIKE' : 'PASS');
     } else {
@@ -179,7 +183,6 @@ export function RoommateSwipePage() {
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (showMatch) return;
@@ -191,13 +194,12 @@ export function RoommateSwipePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCandidate, swiping, showMatch]);
 
-  // Card transform based on drag or swipe animation
   const rotation = dragOffset.x * 0.1;
   const likeOpacity = Math.min(Math.max(dragOffset.x / SWIPE_THRESHOLD, 0), 1);
   const passOpacity = Math.min(Math.max(-dragOffset.x / SWIPE_THRESHOLD, 0), 1);
 
   const cardStyle = swipeDirection
-    ? undefined // CSS classes handle the fly-off animation
+    ? undefined
     : {
         transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) rotate(${rotation}deg)`,
         transition: isDragging ? 'none' : 'transform 0.3s ease',
@@ -206,36 +208,22 @@ export function RoommateSwipePage() {
   return (
     <div className="max-w-lg mx-auto">
       {/* Header */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-6 animate-fade-in-up">
         <h1 className="text-2xl font-bold text-rumi-text">{t.roommate.lookingFor}</h1>
-        <p className="text-sm text-rumi-text/60 mt-1">{t.roommate.subtitle}</p>
+        <p className="text-sm text-rumi-text/50 mt-1">{t.roommate.subtitle}</p>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center mb-6">{error}</div>
-      )}
+      <ErrorAlert message={error} className="mb-6" />
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex justify-center py-16">
-          <p className="text-rumi-text/60">{t.common.loading}</p>
-        </div>
-      )}
+      {loading && <LoadingState text={t.common.loading} />}
 
-      {/* Empty state */}
       {isEmpty && (
-        <div className="text-center py-16">
-          <p className="text-5xl mb-4">🔍</p>
-          <p className="text-lg font-medium text-rumi-text/60">{t.roommate.noMoreCandidates}</p>
-          <p className="text-sm text-rumi-text/40 mt-2">{t.roommate.noMoreSubtitle}</p>
-          <button
-            onClick={fetchCandidates}
-            className="mt-6 px-6 py-2.5 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-          >
-            {t.common.search}
-          </button>
-        </div>
+        <EmptyState
+          icon={<IconSearch className="w-10 h-10" />}
+          title={t.roommate.noMoreCandidates}
+          description={t.roommate.noMoreSubtitle}
+          action={{ label: t.common.search, onClick: fetchCandidates }}
+        />
       )}
 
       {/* Card */}
@@ -248,7 +236,7 @@ export function RoommateSwipePage() {
             onTouchEnd={handleTouchEnd}
             onMouseDown={handleMouseDown}
             style={cardStyle}
-            className={`bg-white rounded-2xl shadow-lg border border-rumi-primary-light/20 overflow-hidden select-none cursor-grab active:cursor-grabbing ${
+            className={`bg-white rounded-3xl shadow-xl border border-rumi-primary-light/15 overflow-hidden select-none cursor-grab active:cursor-grabbing ${
               swipeDirection === 'left'
                 ? '-translate-x-[150%] opacity-0 rotate-[-20deg] transition-all duration-300'
                 : swipeDirection === 'right'
@@ -260,13 +248,13 @@ export function RoommateSwipePage() {
             {!swipeDirection && (likeOpacity > 0 || passOpacity > 0) && (
               <>
                 <div
-                  className="absolute top-6 left-6 z-10 px-4 py-2 border-4 border-green-500 rounded-lg"
+                  className="absolute top-6 left-6 z-10 px-4 py-2 border-4 border-green-500 rounded-xl"
                   style={{ opacity: likeOpacity, transform: `rotate(-20deg)` }}
                 >
                   <span className="text-green-500 text-2xl font-black tracking-wider">LIKE</span>
                 </div>
                 <div
-                  className="absolute top-6 right-6 z-10 px-4 py-2 border-4 border-red-500 rounded-lg"
+                  className="absolute top-6 right-6 z-10 px-4 py-2 border-4 border-red-500 rounded-xl"
                   style={{ opacity: passOpacity, transform: `rotate(20deg)` }}
                 >
                   <span className="text-red-500 text-2xl font-black tracking-wider">NOPE</span>
@@ -275,7 +263,7 @@ export function RoommateSwipePage() {
             )}
 
             {/* Avatar / Photo */}
-            <div className="h-64 bg-gradient-to-br from-rumi-primary/20 to-rumi-accent/20 flex items-center justify-center relative pointer-events-none">
+            <div className="h-64 bg-gradient-to-br from-rumi-primary/15 to-rumi-accent/15 flex items-center justify-center relative pointer-events-none">
               {currentCandidate.avatarUrl ? (
                 <img
                   src={currentCandidate.avatarUrl}
@@ -284,7 +272,11 @@ export function RoommateSwipePage() {
                   draggable={false}
                 />
               ) : (
-                <span className="text-7xl">👤</span>
+                <Avatar
+                  name={`${currentCandidate.firstName} ${currentCandidate.lastName}`}
+                  size="xl"
+                  className="ring-0 w-24 h-24 text-3xl"
+                />
               )}
               {/* Name overlay */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
@@ -304,22 +296,22 @@ export function RoommateSwipePage() {
             <div className="p-5 space-y-4">
               {/* Key details */}
               <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rumi-primary/10 text-rumi-primary text-sm font-medium">
-                  💰 ${formatBudget(currentCandidate.roommateProfile.budget)} /mes
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rumi-accent/10 text-rumi-accent text-sm font-medium">
-                  📍 {currentCandidate.roommateProfile.preferredCity}
-                </span>
+                <Badge variant="primary" size="md" icon={<IconMoney className="w-3.5 h-3.5" />}>
+                  ${formatBudget(currentCandidate.roommateProfile.budget)} /mes
+                </Badge>
+                <Badge variant="accent" size="md" icon={<IconMapPin className="w-3.5 h-3.5" />}>
+                  {currentCandidate.roommateProfile.preferredCity}
+                </Badge>
                 {currentCandidate.roommateProfile.moveInDate && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-medium">
-                    📅 {new Date(currentCandidate.roommateProfile.moveInDate).toLocaleDateString('es-CO', { month: 'short', year: 'numeric' })}
-                  </span>
+                  <Badge variant="success" size="md" icon={<IconCalendar className="w-3.5 h-3.5" />}>
+                    {new Date(currentCandidate.roommateProfile.moveInDate).toLocaleDateString('es-CO', { month: 'short', year: 'numeric' })}
+                  </Badge>
                 )}
               </div>
 
               {/* Bio */}
               {currentCandidate.roommateProfile.bio && (
-                <p className="text-rumi-text/70 text-sm leading-relaxed">
+                <p className="text-rumi-text/60 text-sm leading-relaxed">
                   {currentCandidate.roommateProfile.bio}
                 </p>
               )}
@@ -327,10 +319,10 @@ export function RoommateSwipePage() {
               {/* Neighborhoods */}
               {currentCandidate.roommateProfile.preferredNeighborhoods.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-rumi-text/50 mb-1.5">Barrios preferidos</p>
+                  <p className="text-xs font-semibold text-rumi-text/40 uppercase tracking-wider mb-1.5">Barrios preferidos</p>
                   <div className="flex flex-wrap gap-1.5">
                     {currentCandidate.roommateProfile.preferredNeighborhoods.map((n) => (
-                      <span key={n} className="px-2 py-0.5 rounded-full bg-gray-100 text-xs text-rumi-text/70">{n}</span>
+                      <Badge key={n} variant="neutral" size="sm">{n}</Badge>
                     ))}
                   </div>
                 </div>
@@ -339,32 +331,32 @@ export function RoommateSwipePage() {
               {/* Lifestyle tags */}
               {currentCandidate.roommateProfile.lifestyle && (
                 <div>
-                  <p className="text-xs font-medium text-rumi-text/50 mb-1.5">{t.roommate.lifestyle}</p>
+                  <p className="text-xs font-semibold text-rumi-text/40 uppercase tracking-wider mb-1.5">{t.roommate.lifestyle}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {currentCandidate.roommateProfile.lifestyle.smoking !== undefined && (
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-xs text-rumi-text/70">
-                        {currentCandidate.roommateProfile.lifestyle.smoking ? '🚬' : '🚭'} {currentCandidate.roommateProfile.lifestyle.smoking ? t.roommate.yes : t.roommate.no}
-                      </span>
+                      <Badge variant="neutral" size="sm">
+                        {currentCandidate.roommateProfile.lifestyle.smoking ? 'Fuma' : 'No fuma'}
+                      </Badge>
                     )}
                     {currentCandidate.roommateProfile.lifestyle.pets !== undefined && (
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-xs text-rumi-text/70">
-                        🐾 {currentCandidate.roommateProfile.lifestyle.pets ? t.roommate.yes : t.roommate.no}
-                      </span>
+                      <Badge variant="neutral" size="sm">
+                        Mascotas: {currentCandidate.roommateProfile.lifestyle.pets ? t.roommate.yes : t.roommate.no}
+                      </Badge>
                     )}
                     {currentCandidate.roommateProfile.lifestyle.schedule && (
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-xs text-rumi-text/70">
-                        🕐 {t.roommate.scheduleValues[currentCandidate.roommateProfile.lifestyle.schedule]}
-                      </span>
+                      <Badge variant="neutral" size="sm">
+                        {t.roommate.scheduleValues[currentCandidate.roommateProfile.lifestyle.schedule]}
+                      </Badge>
                     )}
                     {currentCandidate.roommateProfile.lifestyle.cleanliness && (
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-xs text-rumi-text/70">
-                        🧹 {t.roommate.cleanlinessValues[currentCandidate.roommateProfile.lifestyle.cleanliness]}
-                      </span>
+                      <Badge variant="neutral" size="sm">
+                        {t.roommate.cleanlinessValues[currentCandidate.roommateProfile.lifestyle.cleanliness]}
+                      </Badge>
                     )}
                     {currentCandidate.roommateProfile.lifestyle.guests && (
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-xs text-rumi-text/70">
-                        👥 {t.roommate.guestsValues[currentCandidate.roommateProfile.lifestyle.guests]}
-                      </span>
+                      <Badge variant="neutral" size="sm">
+                        Invitados: {t.roommate.guestsValues[currentCandidate.roommateProfile.lifestyle.guests]}
+                      </Badge>
                     )}
                   </div>
                 </div>
@@ -373,72 +365,65 @@ export function RoommateSwipePage() {
           </div>
 
           {/* Swipe buttons */}
-          <div className="flex justify-center gap-6 mt-6">
+          <div className="flex justify-center gap-8 mt-6">
             <button
               onClick={() => handleSwipe('PASS')}
               disabled={swiping}
-              className="w-16 h-16 rounded-full bg-white shadow-lg border border-red-200 flex items-center justify-center text-2xl hover:scale-110 hover:shadow-xl transition-all disabled:opacity-50 disabled:hover:scale-100"
+              className="w-16 h-16 rounded-full bg-white shadow-lg border-2 border-red-200 flex items-center justify-center text-red-400 hover:scale-110 hover:shadow-xl hover:border-red-300 hover:text-red-500 transition-all disabled:opacity-50 disabled:hover:scale-100"
               title={t.roommate.swipeLeft}
             >
-              ✕
+              <IconX className="w-7 h-7" />
             </button>
             <button
               onClick={() => handleSwipe('LIKE')}
               disabled={swiping}
-              className="w-16 h-16 rounded-full bg-rumi-primary shadow-lg border border-rumi-primary flex items-center justify-center text-2xl text-white hover:scale-110 hover:shadow-xl transition-all disabled:opacity-50 disabled:hover:scale-100"
+              className="w-16 h-16 rounded-full bg-rumi-primary shadow-lg shadow-rumi-primary/25 border-2 border-rumi-primary flex items-center justify-center text-white hover:scale-110 hover:shadow-xl hover:shadow-rumi-primary/30 transition-all disabled:opacity-50 disabled:hover:scale-100"
               title={t.roommate.swipeRight}
             >
-              ♥
+              <IconHeart className="w-7 h-7" />
             </button>
           </div>
 
           {/* Keyboard hint */}
-          <p className="text-center text-xs text-rumi-text/30 mt-3">
-            ← {t.roommate.swipeLeft} &nbsp;|&nbsp; {t.roommate.swipeRight} →
+          <p className="text-center text-xs text-rumi-text/25 mt-3">
+            &larr; {t.roommate.swipeLeft} &nbsp;|&nbsp; {t.roommate.swipeRight} &rarr;
           </p>
         </div>
       )}
 
       {/* Match modal */}
-      {showMatch && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-[bounce-in_0.4s_ease-out]">
-            <div className="bg-gradient-to-br from-rumi-primary to-rumi-accent p-8 text-center">
-              <p className="text-5xl mb-3">🎉</p>
+      <Modal isOpen={!!showMatch} onClose={() => setShowMatch(null)} size="sm">
+        {showMatch && (
+          <div className="-mx-6 -mt-6">
+            <div className="bg-gradient-to-br from-rumi-primary to-rumi-accent p-8 text-center rounded-t-2xl">
+              <div className="text-5xl mb-3 animate-gentle-float">&#127881;</div>
               <h2 className="text-2xl font-bold text-white">{t.roommate.itsAMatch}</h2>
               <p className="text-white/80 mt-2">{t.roommate.matchMessage}</p>
             </div>
-
             <div className="p-6 text-center">
-              <div className="w-20 h-20 mx-auto rounded-full bg-rumi-primary/10 flex items-center justify-center text-4xl mb-3">
-                {showMatch.avatarUrl ? (
-                  <img src={showMatch.avatarUrl} alt={showMatch.firstName} className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  '👤'
-                )}
-              </div>
+              <Avatar
+                src={showMatch.avatarUrl}
+                name={`${showMatch.firstName} ${showMatch.lastName}`}
+                size="xl"
+                className="mx-auto mb-3"
+              />
               <p className="text-lg font-semibold text-rumi-text">
                 {showMatch.firstName} {showMatch.lastName}
               </p>
-
               <div className="flex flex-col gap-3 mt-6">
-                <Link
-                  to="/matches"
-                  className="px-6 py-2.5 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-                >
-                  {t.roommate.startChat}
+                <Link to="/matches">
+                  <Button variant="primary" fullWidth>
+                    {t.roommate.startChat}
+                  </Button>
                 </Link>
-                <button
-                  onClick={() => setShowMatch(null)}
-                  className="px-6 py-2.5 text-sm font-medium text-rumi-text/60 hover:text-rumi-text transition-colors"
-                >
+                <Button variant="ghost" fullWidth onClick={() => setShowMatch(null)}>
                   {t.roommate.keepSwiping}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

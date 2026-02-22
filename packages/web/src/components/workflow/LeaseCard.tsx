@@ -1,4 +1,8 @@
 import { t } from '../../i18n/es';
+import { Card } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { IconClipboard, IconCalendar, IconMoney, IconUser } from '../ui/Icons';
 
 interface Props {
   lease: {
@@ -41,40 +45,56 @@ export function LeaseCard({ lease, isLandlord, onEnd, ending }: Props) {
   const isActive = lease.status === 'ACTIVE';
 
   return (
-    <div className={`bg-white rounded-2xl shadow-md border p-6 ${isActive ? 'border-green-200' : 'border-gray-200'}`}>
+    <Card variant="elevated" padding="md">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${isActive ? 'bg-green-100' : 'bg-gray-100'}`}>
-            {isActive ? '📝' : '📋'}
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+            isActive
+              ? 'bg-green-100 text-green-600'
+              : 'bg-rumi-bg text-rumi-text/40'
+          }`}>
+            <IconClipboard className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-rumi-text">{lease.property.title}</h3>
             <p className="text-sm text-rumi-text/50">{lease.property.address}, {lease.property.city}</p>
           </div>
         </div>
-        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+        <Badge variant={isActive ? 'success' : 'neutral'} dot>
           {isActive ? t.workflow.lease.active : t.workflow.lease.ended}
-        </span>
+        </Badge>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-rumi-bg/50 rounded-lg">
-        <div>
-          <p className="text-xs text-rumi-text/50">{t.workflow.lease.startDate}</p>
-          <p className="text-sm font-medium text-rumi-text">{formatDate(lease.startDate)}</p>
+      <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-rumi-bg/50 rounded-xl">
+        <div className="flex items-start gap-2.5">
+          <IconCalendar className="w-4 h-4 text-rumi-text/40 mt-0.5" />
+          <div>
+            <p className="text-xs text-rumi-text/50">{t.workflow.lease.startDate}</p>
+            <p className="text-sm font-medium text-rumi-text">{formatDate(lease.startDate)}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-rumi-text/50">{t.workflow.lease.endDate}</p>
-          <p className="text-sm font-medium text-rumi-text">{formatDate(lease.endDate)}</p>
+        <div className="flex items-start gap-2.5">
+          <IconCalendar className="w-4 h-4 text-rumi-text/40 mt-0.5" />
+          <div>
+            <p className="text-xs text-rumi-text/50">{t.workflow.lease.endDate}</p>
+            <p className="text-sm font-medium text-rumi-text">{formatDate(lease.endDate)}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-rumi-text/50">{t.workflow.lease.monthlyRent}</p>
-          <p className="text-sm font-bold text-rumi-primary">${formatPrice(lease.monthlyRent)} COP</p>
+        <div className="flex items-start gap-2.5">
+          <IconMoney className="w-4 h-4 text-rumi-primary mt-0.5" />
+          <div>
+            <p className="text-xs text-rumi-text/50">{t.workflow.lease.monthlyRent}</p>
+            <p className="text-sm font-bold text-rumi-primary">${formatPrice(lease.monthlyRent)} COP</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-rumi-text/50">{t.workflow.lease.tenant}</p>
-          <p className="text-sm font-medium text-rumi-text">
-            {lease.tenant.firstName} {lease.tenant.lastName}
-          </p>
+        <div className="flex items-start gap-2.5">
+          <IconUser className="w-4 h-4 text-rumi-text/40 mt-0.5" />
+          <div>
+            <p className="text-xs text-rumi-text/50">{t.workflow.lease.tenant}</p>
+            <p className="text-sm font-medium text-rumi-text">
+              {lease.tenant.firstName} {lease.tenant.lastName}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -85,14 +105,16 @@ export function LeaseCard({ lease, isLandlord, onEnd, ending }: Props) {
       )}
 
       {isActive && isLandlord && onEnd && (
-        <button
+        <Button
+          variant="danger"
+          size="sm"
           onClick={onEnd}
-          disabled={ending}
-          className="mt-4 px-4 py-2 text-sm font-medium border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+          loading={ending}
+          className="mt-4"
         >
-          {ending ? '...' : t.workflow.lease.endLease}
-        </button>
+          {t.workflow.lease.endLease}
+        </Button>
       )}
-    </div>
+    </Card>
   );
 }

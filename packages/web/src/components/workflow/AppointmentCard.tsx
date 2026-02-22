@@ -1,4 +1,8 @@
 import { t } from '../../i18n/es';
+import { Card } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { IconCalendar, IconClock, IconMapPin, IconCheck } from '../ui/Icons';
 
 interface Props {
   confirmedStart: string;
@@ -35,12 +39,16 @@ export function AppointmentCard({
   const isCompleted = status === 'COMPLETED';
 
   return (
-    <div className={`bg-white rounded-2xl shadow-md border p-6 ${isCompleted ? 'border-green-200' : 'border-rumi-primary-light/20'}`}>
+    <Card variant="elevated" padding="md">
       <div className="flex items-center gap-3 mb-4">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${isCompleted ? 'bg-green-100' : 'bg-rumi-primary/10'}`}>
-          {isCompleted ? '✅' : '📅'}
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+          isCompleted
+            ? 'bg-green-100 text-green-600'
+            : 'bg-gradient-to-br from-rumi-primary/10 to-rumi-accent/10 text-rumi-primary'
+        }`}>
+          {isCompleted ? <IconCheck className="w-5 h-5" /> : <IconCalendar className="w-5 h-5" />}
         </div>
-        <div>
+        <div className="flex-1">
           <h3 className="text-base font-semibold text-rumi-text">
             {isCompleted ? t.workflow.appointment.completed : t.workflow.appointment.confirmed}
           </h3>
@@ -50,34 +58,40 @@ export function AppointmentCard({
               : t.workflow.appointment.confirmedSubtitle}
           </p>
         </div>
+        <Badge variant={isCompleted ? 'success' : 'primary'} dot>
+          {isCompleted ? 'Completada' : 'Confirmada'}
+        </Badge>
       </div>
 
-      <div className="space-y-2 p-4 bg-rumi-bg/50 rounded-lg">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-rumi-text/50">📅</span>
+      <div className="space-y-2.5 p-4 bg-rumi-bg/50 rounded-xl">
+        <div className="flex items-center gap-2.5">
+          <IconCalendar className="w-4 h-4 text-rumi-text/40 flex-shrink-0" />
           <span className="text-sm font-medium text-rumi-text">{formatDateTime(confirmedStart)}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-rumi-text/50">⏰</span>
+        <div className="flex items-center gap-2.5">
+          <IconClock className="w-4 h-4 text-rumi-text/40 flex-shrink-0" />
           <span className="text-sm text-rumi-text">
             Hasta {new Date(confirmedEnd).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-rumi-text/50">📍</span>
+        <div className="flex items-center gap-2.5">
+          <IconMapPin className="w-4 h-4 text-rumi-text/40 flex-shrink-0" />
           <span className="text-sm text-rumi-text">{propertyAddress}, {propertyCity}</span>
         </div>
       </div>
 
       {!isCompleted && isLandlord && onComplete && (
-        <button
+        <Button
+          variant="primary"
+          fullWidth
           onClick={onComplete}
-          disabled={completing}
-          className="mt-4 w-full px-4 py-2.5 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+          loading={completing}
+          icon={<IconCheck className="w-4 h-4" />}
+          className="mt-4 !bg-green-600 hover:!bg-green-700"
         >
-          {completing ? '...' : t.workflow.appointment.completeVisit}
-        </button>
+          {t.workflow.appointment.completeVisit}
+        </Button>
       )}
-    </div>
+    </Card>
   );
 }

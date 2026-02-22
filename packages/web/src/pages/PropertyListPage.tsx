@@ -2,6 +2,14 @@ import { useEffect, useState, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { t } from '../i18n/es';
 import apiClient from '../services/api-client';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
+import { IconFilter, IconMap, IconGrid, IconPlus, IconBed, IconBath, IconArea, IconBuilding } from '../components/ui/Icons';
 
 const PropertyMap = lazy(() => import('../components/ui/PropertyMap'));
 
@@ -64,6 +72,9 @@ const LISTING_TYPES = ['RENT', 'SALE'] as const;
 function formatPrice(price: number | string): string {
   return Number(price).toLocaleString('es-CO');
 }
+
+const inputClass =
+  'w-full px-3.5 py-2.5 text-sm border-2 border-rumi-primary-light/30 rounded-xl focus:ring-4 focus:ring-rumi-primary/10 focus:border-rumi-primary focus:outline-none transition-all duration-200 bg-white text-rumi-text placeholder:text-rumi-text/30';
 
 export function PropertyListPage() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -129,53 +140,55 @@ export function PropertyListPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-rumi-text">{t.nav.properties}</h1>
-          <p className="text-sm text-rumi-text/60 mt-1">{t.property.browseSubtitle}</p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2 text-sm font-medium border border-rumi-primary/30 text-rumi-primary rounded-lg hover:bg-rumi-primary/5 transition-colors"
-          >
-            {t.common.filter} {showFilters ? '▲' : '▼'}
-          </button>
-          <button
-            onClick={() => setViewMode(viewMode === 'grid' ? 'map' : 'grid')}
-            className="px-4 py-2 text-sm font-medium border border-rumi-primary/30 text-rumi-primary rounded-lg hover:bg-rumi-primary/5 transition-colors"
-          >
-            {viewMode === 'grid' ? t.map.mapView : t.map.listView}
-          </button>
-          <Link
-            to="/properties/new"
-            className="px-4 py-2 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-          >
-            + {t.nav.publishProperty}
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title={t.nav.properties}
+        subtitle={t.property.browseSubtitle}
+        action={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<IconFilter className="w-4 h-4" />}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              {t.common.filter} {showFilters ? '\u25B2' : '\u25BC'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={viewMode === 'grid' ? <IconMap className="w-4 h-4" /> : <IconGrid className="w-4 h-4" />}
+              onClick={() => setViewMode(viewMode === 'grid' ? 'map' : 'grid')}
+            >
+              {viewMode === 'grid' ? t.map.mapView : t.map.listView}
+            </Button>
+            <Link to="/properties/new">
+              <Button variant="primary" size="sm" icon={<IconPlus className="w-4 h-4" />}>
+                {t.nav.publishProperty}
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Filters Panel */}
       {showFilters && (
-        <div className="bg-white rounded-2xl shadow-md p-5 mb-6 border border-rumi-primary-light/20">
+        <Card variant="bordered" padding="md" className="mb-6 animate-fade-in-up">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
-              <label className="block text-xs font-medium text-rumi-text/60 mb-1">{t.property.city}</label>
+              <label className="block text-xs font-medium text-rumi-text/50 mb-1.5">{t.property.city}</label>
               <input
                 value={filters.city}
                 onChange={handleFilterChange('city')}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rumi-primary/40 focus:border-rumi-primary outline-none"
+                className={inputClass}
                 placeholder="Ej: Bogota"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-rumi-text/60 mb-1">{t.property.type}</label>
+              <label className="block text-xs font-medium text-rumi-text/50 mb-1.5">{t.property.type}</label>
               <select
                 value={filters.propertyType}
                 onChange={handleFilterChange('propertyType')}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rumi-primary/40 focus:border-rumi-primary outline-none bg-white"
+                className={`${inputClass} appearance-none`}
               >
                 <option value="">{t.property.allTypes}</option>
                 {PROPERTY_TYPES.map((pt) => (
@@ -184,11 +197,11 @@ export function PropertyListPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-rumi-text/60 mb-1">{t.property.listingType}</label>
+              <label className="block text-xs font-medium text-rumi-text/50 mb-1.5">{t.property.listingType}</label>
               <select
                 value={filters.listingType}
                 onChange={handleFilterChange('listingType')}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rumi-primary/40 focus:border-rumi-primary outline-none bg-white"
+                className={`${inputClass} appearance-none`}
               >
                 <option value="">{t.property.allListings}</option>
                 {LISTING_TYPES.map((lt) => (
@@ -197,66 +210,63 @@ export function PropertyListPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-rumi-text/60 mb-1">{t.property.minPrice}</label>
+              <label className="block text-xs font-medium text-rumi-text/50 mb-1.5">{t.property.minPrice}</label>
               <input
                 type="number"
                 value={filters.minPrice}
                 onChange={handleFilterChange('minPrice')}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rumi-primary/40 focus:border-rumi-primary outline-none"
+                className={inputClass}
                 placeholder="0"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-rumi-text/60 mb-1">{t.property.maxPrice}</label>
+              <label className="block text-xs font-medium text-rumi-text/50 mb-1.5">{t.property.maxPrice}</label>
               <input
                 type="number"
                 value={filters.maxPrice}
                 onChange={handleFilterChange('maxPrice')}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rumi-primary/40 focus:border-rumi-primary outline-none"
+                className={inputClass}
                 placeholder="10,000,000"
               />
             </div>
           </div>
           <div className="flex gap-3 mt-4">
-            <button
-              onClick={handleApplyFilters}
-              className="px-4 py-2 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-            >
+            <Button variant="primary" size="sm" onClick={handleApplyFilters}>
               {t.common.search}
-            </button>
-            <button
-              onClick={handleClearFilters}
-              className="px-4 py-2 text-sm font-medium text-rumi-text/60 hover:text-rumi-text transition-colors"
-            >
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleClearFilters}>
               {t.property.clearFilters}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Error */}
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center mb-6">{error}</div>
-      )}
+      <ErrorAlert message={error} className="mb-6" />
 
-      {/* Loading */}
+      {/* Loading — Skeleton cards */}
       {loading && (
-        <div className="flex justify-center py-12">
-          <p className="text-rumi-text/60">{t.common.loading}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} variant="card" />
+          ))}
         </div>
       )}
 
-      {/* Property Grid */}
+      {/* Empty State */}
       {!loading && properties.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-xl text-rumi-text/40 mb-2">🏠</p>
-          <p className="text-rumi-text/60">{t.property.noProperties}</p>
-        </div>
+        <EmptyState
+          icon={<IconBuilding className="w-10 h-10" />}
+          title={t.property.noProperties}
+          description="No hay propiedades que coincidan con tus filtros"
+          action={{ label: t.nav.publishProperty, to: '/properties/new' }}
+        />
       )}
 
+      {/* Map View */}
       {!loading && properties.length > 0 && viewMode === 'map' && (
-        <div className="bg-white rounded-2xl shadow-md border border-rumi-primary-light/20 overflow-hidden">
-          <Suspense fallback={<div className="h-[500px] bg-rumi-primary/5 animate-pulse" />}>
+        <Card variant="elevated" padding="none" className="overflow-hidden">
+          <Suspense fallback={<div className="h-[500px] animate-shimmer" />}>
             <PropertyMap
               markers={properties
                 .filter((p) => p.latitude && p.longitude)
@@ -271,67 +281,79 @@ export function PropertyListPage() {
               height="500px"
             />
           </Suspense>
-        </div>
+        </Card>
       )}
 
+      {/* Grid View */}
       {!loading && properties.length > 0 && viewMode === 'grid' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
           {properties.map((property) => (
-            <Link
-              key={property.id}
-              to={`/properties/${property.id}`}
-              className="bg-white rounded-2xl shadow-md border border-rumi-primary-light/20 overflow-hidden hover:shadow-lg transition-shadow group"
-            >
-              {/* Image */}
-              <div className="h-48 bg-rumi-primary/10 relative overflow-hidden">
-                {property.images.length > 0 ? (
-                  <img
-                    src={property.images[0].url}
-                    alt={property.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-4xl text-rumi-primary/30">
-                    🏠
-                  </div>
-                )}
-                {/* Listing type badge */}
-                <span className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold text-white ${
-                  property.listingType === 'RENT' ? 'bg-rumi-primary' : 'bg-rumi-accent'
-                }`}>
-                  {t.property.listingTypes[property.listingType as 'RENT' | 'SALE']}
-                </span>
-                {/* Property type badge */}
-                <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-medium bg-white/90 text-rumi-text">
-                  {t.property.types[property.propertyType as 'APARTMENT' | 'HOUSE' | 'ROOM' | 'STUDIO']}
-                </span>
-                {/* Ya visto badge */}
-                {property.isViewed && (
-                  <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-xs font-medium bg-black/50 text-white">
-                    ✓ {t.property.viewed}
+            <Link key={property.id} to={`/properties/${property.id}`} className="block group">
+              <Card variant="interactive" padding="none" className="overflow-hidden h-full">
+                {/* Image */}
+                <div className="h-48 bg-gradient-to-br from-rumi-primary/5 to-rumi-accent/5 relative overflow-hidden">
+                  {property.images.length > 0 ? (
+                    <img
+                      src={property.images[0].url}
+                      alt={property.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <IconBuilding className="w-12 h-12 text-rumi-primary/20" />
+                    </div>
+                  )}
+                  {/* Listing type badge */}
+                  <Badge
+                    variant={property.listingType === 'RENT' ? 'primary' : 'accent'}
+                    size="sm"
+                    className="absolute top-3 left-3 shadow-sm"
+                  >
+                    {t.property.listingTypes[property.listingType as 'RENT' | 'SALE']}
+                  </Badge>
+                  {/* Property type badge */}
+                  <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-medium bg-white/90 text-rumi-text shadow-sm">
+                    {t.property.types[property.propertyType as 'APARTMENT' | 'HOUSE' | 'ROOM' | 'STUDIO']}
                   </span>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="p-4">
-                <h3 className="font-semibold text-rumi-text truncate">{property.title}</h3>
-                <p className="text-sm text-rumi-text/50 mt-1 truncate">
-                  {property.neighborhood ? `${property.neighborhood}, ` : ''}{property.city}
-                </p>
-
-                {/* Price */}
-                <p className="text-lg font-bold text-rumi-primary mt-2">
-                  ${formatPrice(property.price)} <span className="text-sm font-normal text-rumi-text/50">{property.currency}{property.listingType === 'RENT' ? t.property.perMonth : ''}</span>
-                </p>
-
-                {/* Specs */}
-                <div className="flex items-center gap-4 mt-3 text-sm text-rumi-text/60">
-                  <span>🛏 {property.bedrooms} {t.property.beds}</span>
-                  <span>🚿 {property.bathrooms} {t.property.baths}</span>
-                  {property.area && <span>📐 {Number(property.area)} m²</span>}
+                  {/* Viewed badge */}
+                  {property.isViewed && (
+                    <Badge variant="neutral" size="sm" className="absolute bottom-3 left-3 bg-black/50 text-white">
+                      &#10003; {t.property.viewed}
+                    </Badge>
+                  )}
                 </div>
-              </div>
+
+                {/* Info */}
+                <div className="p-4">
+                  <h3 className="font-semibold text-rumi-text truncate">{property.title}</h3>
+                  <p className="text-sm text-rumi-text/40 mt-1 truncate">
+                    {property.neighborhood ? `${property.neighborhood}, ` : ''}{property.city}
+                  </p>
+
+                  {/* Price */}
+                  <p className="text-lg font-bold text-rumi-primary mt-2">
+                    ${formatPrice(property.price)}{' '}
+                    <span className="text-sm font-normal text-rumi-text/40">
+                      {property.currency}{property.listingType === 'RENT' ? t.property.perMonth : ''}
+                    </span>
+                  </p>
+
+                  {/* Specs */}
+                  <div className="flex items-center gap-4 mt-3 text-sm text-rumi-text/50">
+                    <span className="flex items-center gap-1.5">
+                      <IconBed className="w-4 h-4" /> {property.bedrooms} {t.property.beds}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <IconBath className="w-4 h-4" /> {property.bathrooms} {t.property.baths}
+                    </span>
+                    {property.area && (
+                      <span className="flex items-center gap-1.5">
+                        <IconArea className="w-4 h-4" /> {Number(property.area)} m&sup2;
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Card>
             </Link>
           ))}
         </div>
@@ -340,23 +362,25 @@ export function PropertyListPage() {
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 mt-8">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg disabled:opacity-30 hover:bg-gray-50 transition-colors"
           >
             {t.common.previous}
-          </button>
-          <span className="text-sm text-rumi-text/60">
+          </Button>
+          <span className="text-sm text-rumi-text/50 font-medium">
             {page} / {pagination.totalPages}
           </span>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
             disabled={page >= pagination.totalPages}
-            className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg disabled:opacity-30 hover:bg-gray-50 transition-colors"
           >
             {t.common.next}
-          </button>
+          </Button>
         </div>
       )}
     </div>

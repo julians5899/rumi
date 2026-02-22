@@ -1,6 +1,11 @@
 import { useState, useRef } from 'react';
 import { t } from '../../i18n/es';
 import apiClient from '../../services/api-client';
+import { Card } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { ErrorAlert } from '../ui/ErrorAlert';
+import { IconUpload, IconCheck, IconX, IconDocument } from '../ui/Icons';
 
 interface DocumentItem {
   id: string;
@@ -25,10 +30,10 @@ const DOC_TYPES = [
   { key: 'OTHER', label: t.workflow.documents.other, required: false },
 ] as const;
 
-const statusColors: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-700',
-  APPROVED: 'bg-green-100 text-green-700',
-  REJECTED: 'bg-red-100 text-red-700',
+const statusVariant: Record<string, 'warning' | 'success' | 'danger'> = {
+  PENDING: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'danger',
 };
 
 const statusLabels: Record<string, string> = {
@@ -51,7 +56,6 @@ export function DocumentUpload({ applicationId, documents, isLandlord, onUpdate 
     setUploading(docType);
     setError('');
     try {
-      // Step 1: Get upload URL
       const urlRes = await apiClient.post<{ uploadUrl: string; key: string }>('/documents/upload-url', {
         applicationId,
         documentType: docType,
@@ -59,14 +63,12 @@ export function DocumentUpload({ applicationId, documents, isLandlord, onUpdate 
         fileName: file.name,
       });
 
-      // Step 2: Upload file
       await fetch(urlRes.data.uploadUrl, {
         method: 'PUT',
         body: file,
         headers: { 'Content-Type': file.type },
       });
 
-      // Step 3: Create document record
       await apiClient.post('/documents', {
         applicationId,
         type: docType,
@@ -130,36 +132,34 @@ export function DocumentUpload({ applicationId, documents, isLandlord, onUpdate 
         className="hidden"
       />
 
-      {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-center text-sm">{error}</div>
-      )}
+      <ErrorAlert message={error} />
 
       {DOC_TYPES.map(({ key, label, required }) => {
         const doc = getDocForType(key);
         const canUpload = !isLandlord && (!doc || doc.status === 'REJECTED');
 
         return (
-          <div
-            key={key}
-            className="bg-white rounded-2xl shadow-md border border-rumi-primary-light/20 p-5"
-          >
+          <Card key={key} variant="elevated" padding="md">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rumi-primary/10 to-rumi-accent/10 flex items-center justify-center">
+                    <IconDocument className="w-4 h-4 text-rumi-primary" />
+                  </div>
                   <h4 className="text-sm font-semibold text-rumi-text">{label}</h4>
-                  {required && <span className="text-xs text-red-400">*</span>}
+                  {required && <span className="text-xs text-rumi-danger">*</span>}
                 </div>
 
                 {doc ? (
-                  <div className="mt-2">
+                  <div className="mt-3 ml-10">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-rumi-text/50">📎 {doc.fileName}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[doc.status]}`}>
+                      <span className="text-xs text-rumi-text/50 truncate max-w-[200px]">{doc.fileName}</span>
+                      <Badge variant={statusVariant[doc.status] || 'neutral'} size="sm">
                         {statusLabels[doc.status]}
-                      </span>
+                      </Badge>
                     </div>
                     {doc.rejectionNote && (
-                      <p className="text-xs text-red-500 mt-1">
+                      <p className="text-xs text-rumi-danger mt-1.5">
                         Motivo: {doc.rejectionNote}
                       </p>
                     )}
@@ -167,12 +167,15 @@ export function DocumentUpload({ applicationId, documents, isLandlord, onUpdate 
                     {/* Landlord actions */}
                     {isLandlord && doc.status === 'PENDING' && (
                       <div className="flex gap-2 mt-3">
-                        <button
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          icon={<IconCheck className="w-3.5 h-3.5" />}
                           onClick={() => handleApprove(doc.id)}
-                          className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          className="!bg-green-600 hover:!bg-green-700"
                         >
                           {t.workflow.documents.approve}
-                        </button>
+                        </Button>
                         {rejectingId === doc.id ? (
                           <div className="flex gap-2 items-center">
                             <input
@@ -180,28 +183,32 @@ export function DocumentUpload({ applicationId, documents, isLandlord, onUpdate 
                               value={rejectionNote}
                               onChange={(e) => setRejectionNote(e.target.value)}
                               placeholder={t.workflow.documents.rejectionNote}
-                              className="px-2 py-1 text-xs border border-gray-300 rounded-lg"
+                              className="px-3 py-1.5 text-xs border-2 border-rumi-primary-light/30 rounded-xl focus:outline-none focus:border-rumi-primary focus:ring-4 focus:ring-rumi-primary/10 transition-all"
                             />
-                            <button
+                            <Button
+                              variant="danger"
+                              size="sm"
                               onClick={() => handleReject(doc.id)}
-                              className="px-2 py-1 text-xs font-medium bg-red-600 text-white rounded-lg"
                             >
                               {t.common.confirm}
-                            </button>
+                            </Button>
                           </div>
                         ) : (
-                          <button
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<IconX className="w-3.5 h-3.5" />}
                             onClick={() => setRejectingId(doc.id)}
-                            className="px-3 py-1.5 text-xs font-medium border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+                            className="!border-red-300 !text-red-600 hover:!bg-red-50"
                           >
                             {t.workflow.documents.reject}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="text-xs text-rumi-text/40 mt-1">
+                  <p className="text-xs text-rumi-text/40 mt-2 ml-10">
                     {isLandlord ? t.workflow.documents.waitingDocs : t.workflow.documents.requiredDocs}
                   </p>
                 )}
@@ -209,16 +216,18 @@ export function DocumentUpload({ applicationId, documents, isLandlord, onUpdate 
 
               {/* Upload button for tenant */}
               {canUpload && (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<IconUpload className="w-4 h-4" />}
                   onClick={() => handleFileSelect(key)}
-                  disabled={uploading === key}
-                  className="px-3 py-2 text-xs font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors disabled:opacity-50 flex-shrink-0"
+                  loading={uploading === key}
                 >
-                  {uploading === key ? '...' : doc ? t.workflow.documents.reupload : t.workflow.documents.upload}
-                </button>
+                  {doc ? t.workflow.documents.reupload : t.workflow.documents.upload}
+                </Button>
               )}
             </div>
-          </div>
+          </Card>
         );
       })}
     </div>

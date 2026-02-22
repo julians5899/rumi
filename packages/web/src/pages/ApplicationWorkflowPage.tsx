@@ -9,6 +9,13 @@ import { AppointmentCard } from '../components/workflow/AppointmentCard';
 import { DocumentUpload } from '../components/workflow/DocumentUpload';
 import { LeaseForm } from '../components/workflow/LeaseForm';
 import { LeaseCard } from '../components/workflow/LeaseCard';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Card } from '../components/ui/Card';
+import { LoadingState } from '../components/ui/LoadingState';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { IconCalendar, IconCheck, IconX, IconDocument } from '../components/ui/Icons';
 
 interface WorkflowData {
   application: {
@@ -81,6 +88,7 @@ export function ApplicationWorkflowPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [confirmEndLease, setConfirmEndLease] = useState(false);
 
   const fetchWorkflow = useCallback(async () => {
     if (!id) return;
@@ -127,10 +135,10 @@ export function ApplicationWorkflowPage() {
 
   const handleEndLease = async () => {
     if (!data?.lease) return;
-    if (!window.confirm(t.workflow.lease.endConfirm)) return;
     setActionLoading(true);
     try {
       await apiClient.put(`/leases/${data.lease.id}/end`);
+      setConfirmEndLease(false);
       fetchWorkflow();
     } catch {
       setError(t.common.error);
@@ -139,18 +147,12 @@ export function ApplicationWorkflowPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <p className="text-rumi-text/50 text-sm">{t.common.loading}</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState text={t.common.loading} />;
 
   if (error && !data) {
     return (
       <div className="max-w-3xl mx-auto">
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center">{error}</div>
+        <ErrorAlert message={error} />
       </div>
     );
   }
@@ -161,46 +163,41 @@ export function ApplicationWorkflowPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <Link to="/applications" className="text-sm text-rumi-primary hover:underline mb-2 inline-block">
-          ← {t.common.back}
-        </Link>
-        <h1 className="text-2xl font-bold text-rumi-text">{t.workflow.title}</h1>
-        <div className="flex items-center gap-3 mt-2">
-          <Link to={`/properties/${data.property.id}`} className="text-sm text-rumi-primary hover:underline">
-            {data.property.title}
-          </Link>
-          <span className="text-sm text-rumi-text/40">—</span>
-          <span className="text-sm text-rumi-text/60">
-            {isLandlord
-              ? `${data.applicant.firstName} ${data.applicant.lastName}`
-              : `${data.property.owner.firstName} ${data.property.owner.lastName}`}
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        title={t.workflow.title}
+        backTo="/applications"
+        subtitle={
+          <div className="flex items-center gap-3 mt-1">
+            <Link to={`/properties/${data.property.id}`} className="text-sm text-rumi-primary hover:underline">
+              {data.property.title}
+            </Link>
+            <span className="text-sm text-rumi-text/40">—</span>
+            <span className="text-sm text-rumi-text/60">
+              {isLandlord
+                ? `${data.applicant.firstName} ${data.applicant.lastName}`
+                : `${data.property.owner.firstName} ${data.property.owner.lastName}`}
+            </span>
+          </div>
+        }
+      />
 
       {/* Stepper */}
       <WorkflowStepper currentStage={data.currentStage} />
 
-      {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-center text-sm mb-4">{error}</div>
-      )}
+      <ErrorAlert message={error} className="mb-4" />
 
       {/* ===== STAGE: ACCEPTED — no appointment yet ===== */}
       {data.currentStage === 'ACCEPTED' && (
-        <div className="text-center py-12">
-          <p className="text-4xl mb-3">📅</p>
-          <p className="text-lg font-medium text-rumi-text/60">{t.workflow.appointment.title}</p>
-          <p className="text-sm text-rumi-text/40 mt-1">{t.workflow.appointment.subtitle}</p>
-          <button
-            onClick={handleCreateAppointment}
-            disabled={actionLoading}
-            className="mt-5 px-5 py-2.5 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors disabled:opacity-50"
-          >
-            {actionLoading ? '...' : t.workflow.appointment.createAppointment}
-          </button>
-        </div>
+        <EmptyState
+          icon={<IconCalendar className="w-10 h-10" />}
+          title={t.workflow.appointment.title}
+          description={t.workflow.appointment.subtitle}
+          action={{
+            label: t.workflow.appointment.createAppointment,
+            onClick: handleCreateAppointment,
+            loading: actionLoading,
+          }}
+        />
       )}
 
       {/* ===== STAGE: SCHEDULING ===== */}
@@ -274,9 +271,12 @@ export function ApplicationWorkflowPage() {
       {/* ===== STAGE: READY FOR LEASE ===== */}
       {data.currentStage === 'READY_FOR_LEASE' && (
         <div className="space-y-6">
-          <div className="bg-green-50 border border-green-200 p-4 rounded-lg text-center">
-            <p className="text-green-700 font-medium">✓ {t.workflow.documents.allApproved}</p>
-          </div>
+          <Card variant="bordered" padding="md" className="text-center">
+            <div className="flex items-center justify-center gap-2 text-green-600">
+              <IconCheck className="w-5 h-5" />
+              <p className="font-medium">{t.workflow.documents.allApproved}</p>
+            </div>
+          </Card>
           {isLandlord ? (
             <LeaseForm
               applicationId={data.application.id}
@@ -284,10 +284,11 @@ export function ApplicationWorkflowPage() {
               onCreated={fetchWorkflow}
             />
           ) : (
-            <div className="text-center py-8">
-              <p className="text-4xl mb-3">📝</p>
-              <p className="text-rumi-text/60">Esperando que el arrendador cree el contrato...</p>
-            </div>
+            <EmptyState
+              icon={<IconDocument className="w-10 h-10" />}
+              title="Esperando contrato"
+              description="Esperando que el arrendador cree el contrato..."
+            />
           )}
         </div>
       )}
@@ -297,18 +298,31 @@ export function ApplicationWorkflowPage() {
         <LeaseCard
           lease={data.lease}
           isLandlord={isLandlord}
-          onEnd={handleEndLease}
+          onEnd={() => setConfirmEndLease(true)}
           ending={actionLoading}
         />
       )}
 
       {/* ===== STAGE: VISIT CANCELLED ===== */}
       {data.currentStage === 'VISIT_CANCELLED' && (
-        <div className="text-center py-12">
-          <p className="text-4xl mb-3">❌</p>
-          <p className="text-lg font-medium text-rumi-text/60">{t.workflow.appointment.cancelled}</p>
-        </div>
+        <EmptyState
+          icon={<IconX className="w-10 h-10" />}
+          title={t.workflow.appointment.cancelled}
+          description="La visita ha sido cancelada."
+        />
       )}
+
+      {/* End Lease Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmEndLease}
+        onClose={() => setConfirmEndLease(false)}
+        onConfirm={handleEndLease}
+        title={t.workflow.lease.endLease}
+        message={t.workflow.lease.endConfirm}
+        confirmLabel={t.workflow.lease.endLease}
+        variant="danger"
+        loading={actionLoading}
+      />
     </div>
   );
 }

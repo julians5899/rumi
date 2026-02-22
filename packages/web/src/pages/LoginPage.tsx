@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { t } from '../i18n/es';
 import { loginUser } from '../services/auth.service';
 import { useAuthStore } from '../store/auth.store';
-import { RumiLogo } from '../components/ui/RumiLogo';
+import { Button } from '../components/ui/Button';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -33,53 +34,52 @@ export function LoginPage() {
   };
 
   return (
-    <div>
-      <div className="flex justify-center mb-6">
-        <RumiLogo size="md" />
-      </div>
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>
-      )}
+    <div className="animate-fade-in-up">
+      <h2 className="text-2xl font-bold text-rumi-text mb-1">{t.auth.login}</h2>
+      <p className="text-sm text-rumi-text/40 mb-6">Ingresa a tu cuenta para continuar</p>
+
+      <ErrorAlert message={error} onDismiss={() => setError('')} className="mb-4" />
+
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-sm font-medium text-rumi-text/80 mb-1">
+          <label className="block text-sm font-medium text-rumi-text/70 mb-1.5">
             {t.auth.email}
           </label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-rumi-primary-light/40 focus:outline-none focus:ring-2 focus:ring-rumi-primary"
+            className="w-full px-4 py-3 rounded-xl border-2 border-rumi-primary-light/30 bg-white text-sm text-rumi-text placeholder:text-rumi-text/30 focus:outline-none focus:border-rumi-primary focus:ring-4 focus:ring-rumi-primary/10 transition-all duration-200"
             placeholder="tu@correo.com"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-rumi-text/80 mb-1">
+          <label className="block text-sm font-medium text-rumi-text/70 mb-1.5">
             {t.auth.password}
           </label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-rumi-primary-light/40 focus:outline-none focus:ring-2 focus:ring-rumi-primary"
+            className="w-full px-4 py-3 rounded-xl border-2 border-rumi-primary-light/30 bg-white text-sm text-rumi-text placeholder:text-rumi-text/30 focus:outline-none focus:border-rumi-primary focus:ring-4 focus:ring-rumi-primary/10 transition-all duration-200"
             required
           />
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 bg-rumi-primary text-white font-semibold rounded-lg hover:bg-rumi-primary-dark transition-colors disabled:opacity-50"
-        >
+
+        <Button type="submit" loading={loading} fullWidth size="lg">
           {loading ? 'Ingresando...' : t.auth.login}
-        </button>
+        </Button>
       </form>
-      <p className="text-center text-sm text-rumi-text/60 mt-4">
-        {t.auth.noAccount}{' '}
-        <Link to="/register" className="text-rumi-primary font-medium">
-          {t.auth.register}
-        </Link>
-      </p>
+
+      <div className="border-t border-rumi-primary-light/15 pt-4 mt-6">
+        <p className="text-center text-sm text-rumi-text/50">
+          {t.auth.noAccount}{' '}
+          <Link to="/register" className="text-rumi-primary font-semibold hover:text-rumi-primary-dark transition-colors">
+            {t.auth.register}
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

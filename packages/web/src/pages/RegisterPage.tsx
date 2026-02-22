@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { t } from '../i18n/es';
 import { registerUser } from '../services/auth.service';
 import { useAuthStore } from '../store/auth.store';
+import { Button } from '../components/ui/Button';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
 
 const GENDER_OPTIONS = [
   { value: 'MALE', label: t.gender.MALE },
@@ -11,6 +13,13 @@ const GENDER_OPTIONS = [
   { value: 'OTHER', label: t.gender.OTHER },
   { value: 'PREFER_NOT_TO_SAY', label: t.gender.PREFER_NOT_TO_SAY },
 ] as const;
+
+const inputClass =
+  'w-full px-4 py-3 rounded-xl border-2 border-rumi-primary-light/30 bg-white text-sm text-rumi-text placeholder:text-rumi-text/30 focus:outline-none focus:border-rumi-primary focus:ring-4 focus:ring-rumi-primary/10 transition-all duration-200';
+
+const selectClass = `${inputClass} appearance-none`;
+
+const labelClass = 'block text-sm font-medium text-rumi-text/70 mb-1.5';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -62,20 +71,18 @@ export function RegisterPage() {
     }
   };
 
-  const inputClass =
-    'w-full px-4 py-3 rounded-lg border border-rumi-primary-light/40 focus:outline-none focus:ring-2 focus:ring-rumi-primary';
-
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-rumi-text mb-6">{t.auth.register}</h2>
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>
-      )}
+    <div className="animate-fade-in-up">
+      <h2 className="text-2xl font-bold text-rumi-text mb-1">{t.auth.register}</h2>
+      <p className="text-sm text-rumi-text/40 mb-6">Crea tu cuenta para empezar</p>
+
+      <ErrorAlert message={error} onDismiss={() => setError('')} className="mb-4" />
+
       <form className="space-y-4" onSubmit={handleSubmit}>
         {/* Name row */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-rumi-text/80 mb-1">Nombre *</label>
+            <label className={labelClass}>Nombre *</label>
             <input
               type="text"
               value={form.firstName}
@@ -85,7 +92,7 @@ export function RegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-rumi-text/80 mb-1">Apellido *</label>
+            <label className={labelClass}>Apellido *</label>
             <input
               type="text"
               value={form.lastName}
@@ -98,9 +105,7 @@ export function RegisterPage() {
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-medium text-rumi-text/80 mb-1">
-            {t.auth.email} *
-          </label>
+          <label className={labelClass}>{t.auth.email} *</label>
           <input
             type="email"
             value={form.email}
@@ -113,9 +118,7 @@ export function RegisterPage() {
 
         {/* Password */}
         <div>
-          <label className="block text-sm font-medium text-rumi-text/80 mb-1">
-            {t.auth.password} *
-          </label>
+          <label className={labelClass}>{t.auth.password} *</label>
           <input
             type="password"
             value={form.password}
@@ -129,17 +132,19 @@ export function RegisterPage() {
         {/* Divider */}
         <div className="relative py-1">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-rumi-primary-light/30" />
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-rumi-primary-light/20 to-transparent" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-white px-3 text-xs text-rumi-text/50">{t.profile.personalInfo} (opcional)</span>
+            <span className="bg-white/80 backdrop-blur-sm px-3 text-xs text-rumi-text/40">
+              {t.profile.personalInfo} (opcional)
+            </span>
           </div>
         </div>
 
         {/* Age + Gender row */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-rumi-text/80 mb-1">{t.profile.age}</label>
+            <label className={labelClass}>{t.profile.age}</label>
             <input
               type="number"
               min={16}
@@ -151,11 +156,11 @@ export function RegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-rumi-text/80 mb-1">{t.profile.gender}</label>
+            <label className={labelClass}>{t.profile.gender}</label>
             <select
               value={form.gender}
               onChange={handleChange('gender')}
-              className={`${inputClass} bg-white`}
+              className={selectClass}
             >
               <option value="">-- Seleccionar --</option>
               {GENDER_OPTIONS.map((g) => (
@@ -170,7 +175,7 @@ export function RegisterPage() {
         {/* Occupation + Nationality row */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-rumi-text/80 mb-1">{t.profile.occupation}</label>
+            <label className={labelClass}>{t.profile.occupation}</label>
             <input
               type="text"
               value={form.occupation}
@@ -181,7 +186,7 @@ export function RegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-rumi-text/80 mb-1">{t.profile.nationality}</label>
+            <label className={labelClass}>{t.profile.nationality}</label>
             <input
               type="text"
               value={form.nationality}
@@ -193,20 +198,19 @@ export function RegisterPage() {
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 bg-rumi-primary text-white font-semibold rounded-lg hover:bg-rumi-primary-dark transition-colors disabled:opacity-50"
-        >
+        <Button type="submit" loading={loading} fullWidth size="lg">
           {loading ? 'Registrando...' : t.auth.register}
-        </button>
+        </Button>
       </form>
-      <p className="text-center text-sm text-rumi-text/60 mt-4">
-        {t.auth.hasAccount}{' '}
-        <Link to="/login" className="text-rumi-primary font-medium">
-          {t.auth.login}
-        </Link>
-      </p>
+
+      <div className="border-t border-rumi-primary-light/15 pt-4 mt-6">
+        <p className="text-center text-sm text-rumi-text/50">
+          {t.auth.hasAccount}{' '}
+          <Link to="/login" className="text-rumi-primary font-semibold hover:text-rumi-primary-dark transition-colors">
+            {t.auth.login}
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

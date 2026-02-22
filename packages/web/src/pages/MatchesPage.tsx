@@ -2,6 +2,16 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { t } from '../i18n/es';
 import apiClient from '../services/api-client';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Avatar } from '../components/ui/Avatar';
+import { LoadingState } from '../components/ui/LoadingState';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { IconHeart, IconMessage, IconMapPin } from '../components/ui/Icons';
 
 interface RoommateProfile {
   budget: number | string;
@@ -69,163 +79,118 @@ export function MatchesPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-rumi-text">{t.nav.matches}</h1>
-          <p className="text-sm text-rumi-text/60 mt-1">
-            {matches.length > 0
-              ? `${matches.length} match${matches.length === 1 ? '' : 'es'}`
-              : ''}
-          </p>
-        </div>
-        <Link
-          to="/roommates"
-          className="px-4 py-2 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-        >
-          {t.roommate.goSwipe}
-        </Link>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center mb-6">{error}</div>
-      )}
-
-      {/* Loading */}
-      {loading && (
-        <div className="flex justify-center py-12">
-          <p className="text-rumi-text/60">{t.common.loading}</p>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && matches.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-5xl mb-4">💜</p>
-          <p className="text-lg font-medium text-rumi-text/60">{t.roommate.noMatches}</p>
-          <p className="text-sm text-rumi-text/40 mt-2">{t.roommate.noMatchesSubtitle}</p>
-          <Link
-            to="/roommates"
-            className="inline-block mt-6 px-6 py-2.5 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-          >
-            {t.roommate.goSwipe}
+      <PageHeader
+        title={t.nav.matches}
+        subtitle={matches.length > 0 ? `${matches.length} match${matches.length === 1 ? '' : 'es'}` : undefined}
+        action={
+          <Link to="/roommates">
+            <Button variant="primary" size="sm" icon={<IconHeart className="w-4 h-4" />}>
+              {t.roommate.goSwipe}
+            </Button>
           </Link>
-        </div>
+        }
+      />
+
+      <ErrorAlert message={error} className="mb-6" />
+
+      {loading && <LoadingState text={t.common.loading} />}
+
+      {!loading && matches.length === 0 && (
+        <EmptyState
+          icon={<IconHeart className="w-10 h-10" />}
+          title={t.roommate.noMatches}
+          description={t.roommate.noMatchesSubtitle}
+          action={{ label: t.roommate.goSwipe, to: '/roommates' }}
+        />
       )}
 
-      {/* Match list */}
       {!loading && matches.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-4 stagger-children">
           {matches.map((match) => (
-            <div
-              key={match.id}
-              className="bg-white rounded-2xl shadow-md border border-rumi-primary-light/20 overflow-hidden hover:shadow-lg transition-shadow"
-            >
+            <Card key={match.id} variant="elevated" padding="none" className="overflow-hidden">
               <div className="p-5 flex items-start gap-4">
-                {/* Avatar */}
-                <div className="w-16 h-16 rounded-full bg-rumi-primary/10 flex-shrink-0 flex items-center justify-center text-2xl overflow-hidden">
-                  {match.matchedUser.avatarUrl ? (
-                    <img
-                      src={match.matchedUser.avatarUrl}
-                      alt={match.matchedUser.firstName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    '👤'
-                  )}
-                </div>
+                <Avatar
+                  src={match.matchedUser.avatarUrl}
+                  name={`${match.matchedUser.firstName} ${match.matchedUser.lastName}`}
+                  size="lg"
+                />
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-rumi-text">
                     {match.matchedUser.firstName} {match.matchedUser.lastName}
                   </h3>
 
-                  {/* Quick details */}
-                  <div className="flex flex-wrap gap-2 mt-1.5">
+                  <div className="flex flex-wrap items-center gap-2 mt-1.5">
                     {match.matchedUser.roommateProfile?.age && (
-                      <span className="text-xs text-rumi-text/50">
+                      <span className="text-xs text-rumi-text/40">
                         {match.matchedUser.roommateProfile.age} {t.profile.yearsOld}
                       </span>
                     )}
                     {match.matchedUser.roommateProfile?.occupation && (
-                      <span className="text-xs text-rumi-text/50">
+                      <span className="text-xs text-rumi-text/40">
                         &bull; {match.matchedUser.roommateProfile.occupation}
                       </span>
                     )}
                     {match.matchedUser.roommateProfile?.preferredCity && (
-                      <span className="text-xs text-rumi-text/50">
-                        &bull; 📍 {match.matchedUser.roommateProfile.preferredCity}
-                      </span>
+                      <Badge variant="neutral" size="sm" icon={<IconMapPin className="w-3 h-3" />}>
+                        {match.matchedUser.roommateProfile.preferredCity}
+                      </Badge>
                     )}
                   </div>
 
-                  {/* Budget */}
                   {match.matchedUser.roommateProfile && (
                     <p className="text-sm text-rumi-primary font-medium mt-1">
                       ${formatBudget(match.matchedUser.roommateProfile.budget)} /mes
                     </p>
                   )}
 
-                  {/* Bio snippet */}
                   {match.matchedUser.roommateProfile?.bio && (
-                    <p className="text-sm text-rumi-text/60 mt-1.5 line-clamp-2">
+                    <p className="text-sm text-rumi-text/50 mt-1.5 line-clamp-2">
                       {match.matchedUser.roommateProfile.bio}
                     </p>
                   )}
 
-                  {/* Match date */}
-                  <p className="text-xs text-rumi-text/30 mt-2">
+                  <p className="text-xs text-rumi-text/25 mt-2">
                     {t.roommate.matchDate} {new Date(match.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                 </div>
               </div>
 
               {/* Actions bar */}
-              <div className="bg-gray-50 px-5 py-3 flex items-center justify-between border-t border-gray-100">
+              <div className="bg-rumi-bg/50 px-5 py-3 flex items-center justify-between border-t border-rumi-primary-light/10">
                 {match.conversationId ? (
-                  <Link
-                    to={`/messages/${match.conversationId}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-                  >
-                    💬 {t.roommate.startChat}
+                  <Link to={`/messages/${match.conversationId}`}>
+                    <Button variant="primary" size="sm" icon={<IconMessage className="w-4 h-4" />}>
+                      {t.roommate.startChat}
+                    </Button>
                   </Link>
                 ) : (
-                  <span className="text-xs text-rumi-text/30">—</span>
+                  <span className="text-xs text-rumi-text/25">&mdash;</span>
                 )}
 
-                {/* Unmatch button */}
-                {confirmUnmatch === match.id ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-red-500">{t.roommate.unmatchConfirm}</span>
-                    <button
-                      onClick={() => handleUnmatch(match.id)}
-                      disabled={unmatchingId === match.id}
-                      className="px-3 py-1 text-xs font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
-                    >
-                      {unmatchingId === match.id ? '...' : t.common.confirm}
-                    </button>
-                    <button
-                      onClick={() => setConfirmUnmatch(null)}
-                      className="px-3 py-1 text-xs font-medium text-rumi-text/50 hover:text-rumi-text transition-colors"
-                    >
-                      {t.common.cancel}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setConfirmUnmatch(match.id)}
-                    className="text-xs text-rumi-text/30 hover:text-red-400 transition-colors"
-                  >
-                    {t.roommate.unmatch}
-                  </button>
-                )}
+                <button
+                  onClick={() => setConfirmUnmatch(match.id)}
+                  className="text-xs text-rumi-text/25 hover:text-red-400 transition-colors"
+                >
+                  {t.roommate.unmatch}
+                </button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
+
+      {/* Unmatch Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!confirmUnmatch}
+        onClose={() => setConfirmUnmatch(null)}
+        onConfirm={() => confirmUnmatch && handleUnmatch(confirmUnmatch)}
+        title={t.roommate.unmatch}
+        message={t.roommate.unmatchConfirm}
+        confirmLabel={t.roommate.unmatch}
+        variant="danger"
+        loading={unmatchingId !== null}
+      />
     </div>
   );
 }
