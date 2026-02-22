@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { t } from '../i18n/es';
 import apiClient from '../services/api-client';
+import { useAuthStore } from '../store/auth.store';
 
 interface PropertyImage {
   id: string;
@@ -83,6 +84,8 @@ export function PropertyDetailPage() {
   const [applicationMessage, setApplicationMessage] = useState('');
   const [applied, setApplied] = useState(false);
   const [applyError, setApplyError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const authUser = useAuthStore((s) => s.user);
 
   useEffect(() => {
     if (!id) return;
@@ -97,6 +100,20 @@ export function PropertyDetailPage() {
       .catch(() => setError('No se encontro la propiedad'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const isOwner = property ? property.owner.id === authUser?.userId : false;
+
+  const handleDelete = async () => {
+    if (!id || !window.confirm(t.property.deleteConfirm)) return;
+    setDeleting(true);
+    try {
+      await apiClient.delete(`/properties/${id}`);
+      navigate('/properties');
+    } catch {
+      setError('Error al eliminar la propiedad');
+      setDeleting(false);
+    }
+  };
 
   const handleApply = async () => {
     if (!id) return;
@@ -291,51 +308,75 @@ export function PropertyDetailPage() {
             </div>
           </div>
 
-          {/* Apply Card */}
-          <div className="bg-white rounded-2xl shadow-md p-5 border border-rumi-primary-light/20">
-            {applied ? (
-              <div className="text-center">
-                <p className="text-2xl mb-2">✅</p>
-                <p className="text-rumi-primary font-semibold">Aplicacion enviada</p>
-                <p className="text-sm text-rumi-text/50 mt-1">El propietario revisara tu solicitud</p>
-              </div>
-            ) : applying ? (
-              <div>
-                <h3 className="text-sm font-medium text-rumi-text/50 mb-3">{t.property.apply}</h3>
-                <textarea
-                  value={applicationMessage}
-                  onChange={(e) => setApplicationMessage(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rumi-primary/40 focus:border-rumi-primary outline-none resize-none mb-3"
-                  placeholder={t.application.message}
-                />
-                {applyError && (
-                  <p className="text-red-500 text-xs mb-2">{applyError}</p>
-                )}
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleApply}
-                    className="flex-1 py-2 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
-                  >
-                    {t.common.confirm}
-                  </button>
-                  <button
-                    onClick={() => { setApplying(false); setApplyError(''); }}
-                    className="flex-1 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    {t.common.cancel}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setApplying(true)}
-                className="w-full py-3 bg-rumi-primary text-white font-semibold rounded-lg hover:bg-rumi-primary/90 transition-colors"
+          {/* Owner Panel or Apply Card */}
+          {isOwner ? (
+            <div className="bg-white rounded-2xl shadow-md p-5 border border-rumi-primary-light/20">
+              <h3 className="text-sm font-medium text-rumi-text/50 mb-3">{t.property.yourProperty}</h3>
+              <Link
+                to="/applications"
+                className="flex items-center justify-between p-3 bg-rumi-primary/5 rounded-lg mb-3 hover:bg-rumi-primary/10 transition-colors"
               >
-                {t.property.apply}
+                <span className="text-sm font-medium text-rumi-text">
+                  📋 {t.property.seeApplications}
+                </span>
+                <span className="text-xs font-semibold text-rumi-primary">
+                  {t.common.seeMore} →
+                </span>
+              </Link>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="w-full py-2 text-sm font-medium border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                {deleting ? t.common.loading : t.common.delete}
               </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-md p-5 border border-rumi-primary-light/20">
+              {applied ? (
+                <div className="text-center">
+                  <p className="text-2xl mb-2">✅</p>
+                  <p className="text-rumi-primary font-semibold">Aplicacion enviada</p>
+                  <p className="text-sm text-rumi-text/50 mt-1">El propietario revisara tu solicitud</p>
+                </div>
+              ) : applying ? (
+                <div>
+                  <h3 className="text-sm font-medium text-rumi-text/50 mb-3">{t.property.apply}</h3>
+                  <textarea
+                    value={applicationMessage}
+                    onChange={(e) => setApplicationMessage(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rumi-primary/40 focus:border-rumi-primary outline-none resize-none mb-3"
+                    placeholder={t.application.message}
+                  />
+                  {applyError && (
+                    <p className="text-red-500 text-xs mb-2">{applyError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleApply}
+                      className="flex-1 py-2 text-sm font-medium bg-rumi-primary text-white rounded-lg hover:bg-rumi-primary/90 transition-colors"
+                    >
+                      {t.common.confirm}
+                    </button>
+                    <button
+                      onClick={() => { setApplying(false); setApplyError(''); }}
+                      className="flex-1 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      {t.common.cancel}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setApplying(true)}
+                  className="w-full py-3 bg-rumi-primary text-white font-semibold rounded-lg hover:bg-rumi-primary/90 transition-colors"
+                >
+                  {t.property.apply}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Published date */}
           <div className="text-center">

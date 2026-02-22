@@ -30,17 +30,21 @@ model User {
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
   // Relations
-  properties       Property[]
-  propertyViews    PropertyView[]
-  roommateProfile  RoommateProfile?
-  sentSwipes       Swipe[]         @relation("SwipeSender")
-  receivedSwipes   Swipe[]         @relation("SwipeReceiver")
-  sentApplications Application[]   @relation("Applicant")
-  conversations1   Conversation[]  @relation("Participant1")
-  conversations2   Conversation[]  @relation("Participant2")
-  messages         Message[]
-  ratingsGiven     Rating[]        @relation("Rater")
-  ratingsReceived  Rating[]        @relation("RatedUser")
+  properties            Property[]
+  propertyViews         PropertyView[]
+  roommateProfile       RoommateProfile?
+  sentSwipes            Swipe[]            @relation("SwipeSender")
+  receivedSwipes        Swipe[]            @relation("SwipeReceiver")
+  sentApplications      Application[]      @relation("Applicant")
+  conversations1        Conversation[]     @relation("Participant1")
+  conversations2        Conversation[]     @relation("Participant2")
+  messages              Message[]
+  ratingsGiven          Rating[]           @relation("Rater")
+  ratingsReceived       Rating[]           @relation("RatedUser")
+  confirmedAppointments Appointment[]      @relation("ConfirmedBy")
+  availabilitySlots     AvailabilitySlot[]
+  uploadedDocuments     Document[]
+  tenantLeases          Lease[]            @relation("Tenant")
 
   @@map("users")
 }
@@ -90,6 +94,7 @@ model Property {
   images       PropertyImage[]
   views        PropertyView[]
   applications Application[]
+  leases       Lease[]
 
   @@index([city, isActive])
   @@index([ownerId])
@@ -237,8 +242,11 @@ model Application {
   createdAt   DateTime          @default(now()) @map("created_at")
   updatedAt   DateTime          @updatedAt @map("updated_at")
 
-  property  Property @relation(fields: [propertyId], references: [id])
-  applicant User     @relation("Applicant", fields: [applicantId], references: [id])
+  property    Property    @relation(fields: [propertyId], references: [id])
+  applicant   User        @relation("Applicant", fields: [applicantId], references: [id])
+  appointment Appointment?
+  documents   Document[]
+  lease       Lease?
 
   @@unique([propertyId, applicantId])
   @@map("applications")
@@ -275,4 +283,114 @@ enum RatingContext {
   LANDLORD
   TENANT
   ROOMMATE
+}
+
+// ============================================================
+// WORKFLOW: APPOINTMENTS (post-application acceptance)
+// ============================================================
+model Appointment {
+  id              String            @id @default(uuid())
+  applicationId   String            @unique @map("application_id")
+  status          AppointmentStatus @default(SCHEDULING)
+  confirmedStart  DateTime?         @map("confirmed_start")
+  confirmedEnd    DateTime?         @map("confirmed_end")
+  confirmedById   String?           @map("confirmed_by_id")
+  notes           String?
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  application       Application        @relation(fields: [applicationId], references: [id])
+  confirmedByUser   User?              @relation("ConfirmedBy", fields: [confirmedById], references: [id])
+  availabilitySlots AvailabilitySlot[]
+
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  SCHEDULING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model AvailabilitySlot {
+  id            String   @id @default(uuid())
+  appointmentId String   @map("appointment_id")
+  userId        String   @map("user_id")
+  startTime     DateTime @map("start_time")
+  endTime       DateTime @map("end_time")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@index([appointmentId])
+  @@map("availability_slots")
+}
+
+// ============================================================
+// WORKFLOW: DOCUMENTS (post-appointment completion)
+// ============================================================
+model Document {
+  id            String         @id @default(uuid())
+  applicationId String         @map("application_id")
+  uploadedById  String         @map("uploaded_by_id")
+  type          DocumentType
+  status        DocumentStatus @default(PENDING)
+  fileKey       String         @map("file_key")
+  fileName      String         @map("file_name")
+  fileSize      Int            @map("file_size")
+  mimeType      String         @map("mime_type")
+  rejectionNote String?        @map("rejection_note")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id])
+  uploadedBy  User        @relation(fields: [uploadedById], references: [id])
+
+  @@index([applicationId])
+  @@map("documents")
+}
+
+enum DocumentType {
+  CC
+  WORK_CERT
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============================================================
+// WORKFLOW: LEASES (final step — formal contract)
+// ============================================================
+model Lease {
+  id            String      @id @default(uuid())
+  applicationId String      @unique @map("application_id")
+  tenantId      String      @map("tenant_id")
+  propertyId    String      @map("property_id")
+  startDate     DateTime    @map("start_date")
+  endDate       DateTime    @map("end_date")
+  monthlyRent   Decimal     @map("monthly_rent") @db.Decimal(12, 2)
+  status        LeaseStatus @default(ACTIVE)
+  signedAt      DateTime?   @map("signed_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id])
+  tenant      User        @relation("Tenant", fields: [tenantId], references: [id])
+  property    Property    @relation(fields: [propertyId], references: [id])
+
+  @@index([tenantId])
+  @@index([propertyId])
+  @@map("leases")
+}
+
+enum LeaseStatus {
+  ACTIVE
+  ENDED
+  CANCELLED
 }

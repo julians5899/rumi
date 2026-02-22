@@ -80,8 +80,10 @@ The Rumi logo image is stored at the project root for reference.
 ### Separate `@rumi/db` package
 - Isolates Prisma schema + generated client so both `@rumi/api` and `@rumi/shared` can depend on it cleanly
 
-### Messaging: HTTP polling for MVP
-- Simple polling every few seconds; WebSocket support (API Gateway WebSocket API) deferred to future iteration
+### Messaging: WebSocket for real-time chat
+- `@fastify/websocket` provides real-time messaging via `ws://` upgrade at `/api/v1/messages/ws`
+- Authenticated via token query parameter, in-memory connection registry for local dev
+- Instant message delivery when both participants are online, with REST fallback for offline scenarios
 
 ### i18n: Simple translation object for MVP
 - No heavy i18n library; a `t` object with Spanish strings, upgradeable to react-i18next later
@@ -104,7 +106,7 @@ The Rumi logo image is stored at the project root for reference.
 
 ## Database Schema (Prisma)
 
-**Models:** User, Property, PropertyImage, PropertyView, RoommateProfile, Swipe, Match, Conversation, Message, Application, Rating
+**Models:** User, Property, PropertyImage, PropertyView, RoommateProfile, Swipe, Match, Conversation, Message, Application, Appointment, AvailabilitySlot, Document, Lease, Rating
 
 **Key design points:**
 - `User.seekingMode` enum (NONE | TENANT | ROOMMATE) — enforces mutual exclusivity at data level
@@ -121,6 +123,46 @@ The Rumi logo image is stored at the project root for reference.
 - Tracks which properties a user has already seen
 - Enables "Ya visto" badge on listings and filtering to show only unseen properties
 - `viewedAt` is updated on revisit (upsert)
+
+### Post-Approval Workflow (Appointment → Documents → Lease)
+
+After an application is ACCEPTED, the workflow progresses through related records. **The `ApplicationStatus` enum is NOT modified** — instead, the current stage is inferred from the existence and status of related records.
+
+**Workflow state machine:**
+```
+Application ACCEPTED
+  → Appointment SCHEDULING (both parties propose availability slots)
+  → Appointment CONFIRMED (overlapping window selected, ≥30 min)
+  → Appointment COMPLETED (landlord marks visit done)
+  → Documents uploaded (tenant uploads CC, Work Certificate)
+  → Documents APPROVED (landlord reviews)
+  → Lease ACTIVE (landlord creates formal contract)
+```
+
+**New enums:**
+- `AppointmentStatus`: SCHEDULING | CONFIRMED | COMPLETED | CANCELLED
+- `DocumentType`: CC | WORK_CERT | OTHER
+- `DocumentStatus`: PENDING | APPROVED | REJECTED
+- `LeaseStatus`: ACTIVE | ENDED | CANCELLED
+
+**New models:**
+- `Appointment` — 1:1 with Application. Tracks visit scheduling with confirmed time window.
+- `AvailabilitySlot` — N:1 with Appointment. Each party proposes time windows; the system computes overlaps.
+- `Document` — N:1 with Application. Stores file metadata (key, name, size, MIME type) with approval workflow.
+- `Lease` — 1:1 with Application. Formal contract with dates, monthly rent, and status.
+
+**Key relations added to existing models:**
+- `User`: `confirmedAppointments[]`, `availabilitySlots[]`, `uploadedDocuments[]`, `tenantLeases[]`
+- `Application`: `appointment?`, `documents[]`, `lease?`
+- `Property`: `leases[]`
+
+### Storage Abstraction (S3 + Local)
+
+File storage uses a `StorageProvider` interface (`packages/api/src/lib/storage.ts`) with two implementations:
+- **S3StorageProvider** (dev/prod): Wraps existing `s3.ts` for presigned upload URLs
+- **LocalStorageProvider** (localdev): Stores files in `uploads/` directory, served via `@fastify/static`
+
+The local uploads plugin (`packages/api/src/plugins/local-uploads.ts`) registers a `PUT /api/v1/uploads/*` endpoint and static file serving, only when `STAGE=localdev`.
 
 ### Multi-Context Rating System
 - `Rating` table: `{ id, raterId, ratedUserId, context (LANDLORD | TENANT | ROOMMATE), score (1-5), comment?, createdAt }`
@@ -156,6 +198,25 @@ The Rumi logo image is stored at the project root for reference.
 - `POST /applications` — apply to property
 - `GET /applications/sent|received` — view applications
 - `PUT /applications/:id/status` — accept/reject
+- `GET /applications/:id/workflow` — full workflow state (stage, appointment, documents, lease)
+- `POST /appointments` — create appointment (requires Application ACCEPTED)
+- `GET /appointments/by-application/:applicationId` — get appointment for an application
+- `POST /appointments/:id/slots` — add availability time slots
+- `DELETE /appointments/:id/slots/:slotId` — delete own slot
+- `GET /appointments/:id/matches` — compute overlapping time windows (≥30 min)
+- `PUT /appointments/:id/confirm` — confirm a matching time slot
+- `PUT /appointments/:id/complete` — mark visit completed (landlord only)
+- `PUT /appointments/:id/cancel` — cancel appointment
+- `POST /documents/upload-url` — get presigned upload URL (S3 or local)
+- `POST /documents` — create document record after upload
+- `GET /documents/by-application/:applicationId` — list documents for an application
+- `PUT /documents/:id/approve` — approve document (landlord only)
+- `PUT /documents/:id/reject` — reject document with note (landlord only)
+- `DELETE /documents/:id` — delete own pending document
+- `POST /leases` — create lease (requires CC + WORK_CERT approved)
+- `GET /leases` — list my leases (as tenant or landlord)
+- `GET /leases/:id` — get lease detail
+- `PUT /leases/:id/end` — end active lease (landlord only)
 - `POST /ratings` — rate a user (context: LANDLORD | TENANT | ROOMMATE)
 - `GET /ratings/given` — ratings I've given
 - `GET /ratings/received` — ratings I've received
@@ -165,7 +226,7 @@ The Rumi logo image is stored at the project root for reference.
 ## Frontend Architecture
 
 - **Routing:** React Router v7
-- **Pages:** Home, Login, Register, Profile, PropertyList, PropertyDetail, PropertyCreate, RoommateSwipe, Matches, Messages, Applications, NotFound
+- **Pages:** Home, Login, Register, Profile, PropertyList, PropertyDetail, PropertyCreate, RoommateSwipe, Matches, Messages, Applications, ApplicationWorkflow, Leases, NotFound
 - **Swipe UI:** `react-tinder-card` for drag/swipe gestures + like/pass buttons below card + Framer Motion for match notification animation
 - **Auth:** aws-amplify v6 for Cognito OAuth/PKCE flow, synced to Zustand store
 - **API Client:** Axios wrapper with auth token injection, consumed via TanStack Query hooks
@@ -173,6 +234,13 @@ The Rumi logo image is stored at the project root for reference.
 - **Property Views:** "Ya visto" badge on property cards for already-viewed listings, optional filter to hide seen properties
 - **Rating Display:** Overall score shown by default (star + number), hover tooltip reveals per-context breakdown (Arrendador / Inquilino / Compañero)
 - **Brand Theme:** Tailwind v4 `@theme` using Rumi color palette (mauve primary `#C06E9E`, deep purple accent `#5B3A6B`)
+- **Workflow UI** (`components/workflow/`):
+  - `WorkflowStepper` — horizontal 5-step progress indicator (Aceptada → Agendando → Visita → Documentos → Contrato)
+  - `AvailabilityScheduler` — slot management with date/time inputs, match detection, and confirmation
+  - `AppointmentCard` — confirmed/completed visit details
+  - `DocumentUpload` — three upload zones (CC, Work Certificate, Other) with approve/reject workflow
+  - `LeaseForm` — contract creation form (dates + monthly rent)
+  - `LeaseCard` — active/ended lease display
 
 ---
 

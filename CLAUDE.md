@@ -122,7 +122,7 @@ The app uses a `STAGE` environment variable to determine auth behavior:
 
 - **Engine**: PostgreSQL (local for dev, AWS RDS for cloud)
 - **ORM**: Prisma 6
-- **Models** (11 total): User, Property, PropertyImage, PropertyView, RoommateProfile, Swipe, Match, Conversation, Message, Application, Rating
+- **Models** (15 total): User, Property, PropertyImage, PropertyView, RoommateProfile, Swipe, Match, Conversation, Message, Application, Appointment, AvailabilitySlot, Document, Lease, Rating
 - **Conventions**: All tables use `@@map` for snake_case in PostgreSQL, camelCase in TypeScript
 - **Password**: Nullable `password` field on User model (only populated in localdev)
 - **Important**: All Prisma user queries must use `omit: { password: true }` to prevent password hash leaking
@@ -133,6 +133,21 @@ The app uses a `STAGE` environment variable to determine auth behavior:
 - `Rating` with `@@unique([raterId, ratedUserId, context])` — multi-context scoring (LANDLORD, TENANT, ROOMMATE)
 - `PropertyView` tracks seen properties for "Ya visto" badge
 - `RoommateProfile.lifestyle` is JSON for flexible evolving criteria
+
+### Post-Approval Workflow Models
+After an Application is ACCEPTED, the workflow progresses through related records (the `ApplicationStatus` enum is **NOT** modified):
+
+- `Appointment` — 1:1 with Application. Status: SCHEDULING → CONFIRMED → COMPLETED | CANCELLED
+- `AvailabilitySlot` — N:1 with Appointment. Both parties propose time windows; system computes overlaps (≥30 min)
+- `Document` — N:1 with Application. Types: CC, WORK_CERT, OTHER. Status: PENDING → APPROVED | REJECTED
+- `Lease` — 1:1 with Application. Status: ACTIVE → ENDED | CANCELLED. Stores dates + monthly rent
+
+**Current workflow stage is inferred**, not stored. See `getApplicationWorkflow()` in `applications.service.ts`.
+
+### Storage Abstraction
+- `packages/api/src/lib/storage.ts` — `StorageProvider` interface with S3 and local filesystem implementations
+- Local uploads plugin only active when `STAGE=localdev` — stores files in `uploads/` directory
+- **IMPORTANT**: Prisma does NOT allow mixing `select` and `include` at the same query level. Use `include: true` when you need both relation data and all scalar fields.
 
 ## API Routes
 
@@ -157,6 +172,25 @@ All routes prefixed with `/api/v1`. Auth required unless noted.
 - `POST /applications` — Apply to property
 - `GET /applications/sent|received` — View applications
 - `PUT /applications/:id/status` — Accept/reject
+- `GET /applications/:id/workflow` — Full workflow state (stage, appointment, documents, lease)
+- `POST /appointments` — Create appointment for accepted application
+- `GET /appointments/by-application/:applicationId` — Get appointment
+- `POST /appointments/:id/slots` — Add availability slots
+- `DELETE /appointments/:id/slots/:slotId` — Delete own slot
+- `GET /appointments/:id/matches` — Compute overlapping windows
+- `PUT /appointments/:id/confirm` — Confirm time slot
+- `PUT /appointments/:id/complete` — Mark visit completed (landlord)
+- `PUT /appointments/:id/cancel` — Cancel appointment
+- `POST /documents/upload-url` — Get presigned upload URL
+- `POST /documents` — Create document record
+- `GET /documents/by-application/:applicationId` — List documents
+- `PUT /documents/:id/approve` — Approve document (landlord)
+- `PUT /documents/:id/reject` — Reject with note (landlord)
+- `DELETE /documents/:id` — Delete own pending document
+- `POST /leases` — Create lease (requires CC + WORK_CERT approved)
+- `GET /leases` — My leases (as tenant or landlord)
+- `GET /leases/:id` — Lease detail
+- `PUT /leases/:id/end` — End active lease (landlord)
 - `POST /ratings` — Rate a user
 - `GET /ratings/given|received` — My ratings
 
@@ -173,6 +207,14 @@ All routes prefixed with `/api/v1`. Auth required unless noted.
   - Text: `#2D1B36` (dark purple-tinted)
 - **Logo**: SVG at `public/logo.svg`, favicon at `public/favicon.svg`, React component at `src/components/ui/RumiLogo.tsx`
   - Logo design: mauve "rumi" text with a deep purple house integrated into the "r" letterform, deep purple dot on the "i"
+- **Workflow Components** (`src/components/workflow/`):
+  - `WorkflowStepper` — horizontal 5-step progress indicator
+  - `AvailabilityScheduler` — slot management with match detection
+  - `AppointmentCard` — confirmed/completed visit card
+  - `DocumentUpload` — 3 upload zones (CC, Work Cert, Other) with approve/reject
+  - `LeaseForm` — contract creation form (dates + rent)
+  - `LeaseCard` — active/ended lease display
+- **Pages**: Home, Login, Register, Profile, PropertyList, PropertyDetail, PropertyCreate, RoommateSwipe, Matches, Messages, Applications, ApplicationWorkflow, Leases, NotFound
 
 ## Coding Conventions
 
@@ -223,18 +265,22 @@ Estimated monthly cost: ~$15-21 for MVP.
 
 ### Completed
 - Full monorepo scaffold (all 5 packages)
-- Prisma schema with 11 models + migrations + seed data
+- Prisma schema with 15 models + migrations + seed data
 - Fastify API with all MVP route structures (handlers + services)
 - React SPA with all pages, layouts, routing, stores
 - Three-stage auth system (localdev works fully without AWS)
 - AWS CDK infrastructure (6 stacks)
 - CI pipeline (GitHub Actions)
 - Brand logo + favicon integrated
+- Frontend wired to real API calls (properties, applications, roommates, matches, messages, ratings)
+- Property image upload (S3 presigned URLs + local dev storage)
+- Real-time messaging via WebSocket (`@fastify/websocket`)
+- Post-approval workflow: Appointments (scheduling + slot matching), Documents (upload + review), Leases (creation + management)
+- Storage abstraction (S3 for dev/prod, local filesystem for localdev)
+- Workflow UI with stepper, availability scheduler, document upload, lease forms
 
 ### Next Steps
-- Wire up frontend pages to real API calls (most pages are placeholders)
-- Implement swipe matching logic (frontend + backend)
-- Implement messaging (real-time polling)
-- Property image upload (S3 presigned URLs)
 - Deploy to AWS (CDK deploy)
 - Add comprehensive tests
+- Push notifications for workflow events
+- Email notifications

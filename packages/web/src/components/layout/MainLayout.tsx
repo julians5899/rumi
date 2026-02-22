@@ -9,6 +9,7 @@ const navItems = [
   { path: '/matches', label: t.nav.matches, icon: '💜' },
   { path: '/messages', label: t.nav.messages, icon: '💬' },
   { path: '/applications', label: t.nav.applications, icon: '📋' },
+  { path: '/leases', label: t.nav2.leases, icon: '📝' },
 ];
 
 export function MainLayout() {

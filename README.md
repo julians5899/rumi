@@ -143,7 +143,7 @@ Despues de ejecutar `npm run db:seed`, los siguientes usuarios estan disponibles
 | `nicolas@test.com` | ROOMMATE | Ingeniero de sistemas |
 | `mariana@test.com` | ROOMMATE | Consultora (venezolana) |
 
-**Datos pre-cargados:** 12 inmuebles, 14 perfiles de roommate, 4 matches, 4 conversaciones con mensajes, 14 swipes, 3 calificaciones.
+**Datos pre-cargados:** 12 inmuebles, 14 perfiles de roommate, 4 matches, 4 conversaciones con mensajes, 14 swipes, 3 calificaciones, 4 aplicaciones en distintas etapas del workflow (agendamiento, documentos, contrato activo).
 
 ## Estructura del Proyecto
 
@@ -160,12 +160,13 @@ rumi/
 │   │   └── src/
 │   │       ├── server.ts
 │   │       ├── app.ts
-│   │       ├── plugins/     # Auth, CORS, errores
-│   │       └── routes/      # auth, users, properties, roommates, matches, messages
+│   │       ├── lib/          # Prisma singleton, S3, almacenamiento
+│   │       ├── plugins/     # Auth, CORS, errores, uploads locales
+│   │       └── routes/      # auth, users, properties, roommates, matches, messages, appointments, documents, leases
 │   ├── web/             # @rumi/web — Frontend React
 │   │   └── src/
-│   │       ├── pages/       # Paginas de la app
-│   │       ├── components/  # Componentes UI
+│   │       ├── pages/       # Paginas de la app (incl. workflow, contratos)
+│   │       ├── components/  # Componentes UI (incl. workflow/)
 │   │       ├── store/       # Zustand stores
 │   │       ├── services/    # Cliente API (axios)
 │   │       └── i18n/        # Traducciones (español)
@@ -207,5 +208,8 @@ Para acceder a la app desde tu celular (ambos dispositivos deben estar en la mis
 | Roommates | `/api/v1/roommates/*` | Perfil roommate, candidatos, swipes |
 | Matches | `/api/v1/matches/*` | Lista de matches, unmatch |
 | Messages | `/api/v1/messages/*` | Conversaciones, mensajes |
-| Applications | `/api/v1/applications/*` | Solicitudes de arriendo |
+| Applications | `/api/v1/applications/*` | Solicitudes de arriendo, estado del workflow |
+| Appointments | `/api/v1/appointments/*` | Agendar visitas, slots de disponibilidad |
+| Documents | `/api/v1/documents/*` | Subir/aprobar documentos (CC, cert. laboral) |
+| Leases | `/api/v1/leases/*` | Contratos de arriendo |
 | Ratings | `/api/v1/ratings/*` | Calificaciones de usuarios |

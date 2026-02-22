@@ -13,6 +13,10 @@ async function main() {
   console.log('Seeding database...');
 
   // Clean existing seed data (order matters due to foreign keys)
+  await prisma.lease.deleteMany({});
+  await prisma.document.deleteMany({});
+  await prisma.availabilitySlot.deleteMany({});
+  await prisma.appointment.deleteMany({});
   await prisma.application.deleteMany({});
   await prisma.propertyView.deleteMany({});
   await prisma.rating.deleteMany({});
@@ -1113,9 +1117,10 @@ async function main() {
   console.log('  Property views: 8 created');
 
   // ============================================================
-  // APPLICATIONS
+  // APPLICATIONS + WORKFLOW STAGES
   // ============================================================
 
+  // 1. Pending application (Julian → Maria's studio in Usaquen)
   await prisma.application.create({
     data: {
       propertyId: property2.id,
@@ -1125,25 +1130,154 @@ async function main() {
     },
   });
 
-  await prisma.application.create({
+  // 2. Accepted + SCHEDULING stage (Ana → Carlos' apt in La Candelaria)
+  const appScheduling = await prisma.application.create({
     data: {
       propertyId: property5.id,
       applicantId: user4.id,
       message: 'Me encanta la ubicacion, quisiera agendar una visita.',
-      status: 'PENDING',
+      status: 'ACCEPTED',
     },
   });
 
-  await prisma.application.create({
+  // Create appointment in SCHEDULING status with slots from both parties
+  const aptScheduling = await prisma.appointment.create({
+    data: { applicationId: appScheduling.id, status: 'SCHEDULING' },
+  });
+  // Landlord slots (Carlos - user3)
+  await prisma.availabilitySlot.create({
+    data: {
+      appointmentId: aptScheduling.id,
+      userId: user3.id,
+      startTime: new Date('2026-03-10T10:00:00'),
+      endTime: new Date('2026-03-10T12:00:00'),
+    },
+  });
+  await prisma.availabilitySlot.create({
+    data: {
+      appointmentId: aptScheduling.id,
+      userId: user3.id,
+      startTime: new Date('2026-03-11T14:00:00'),
+      endTime: new Date('2026-03-11T17:00:00'),
+    },
+  });
+  // Tenant slots (Ana - user4)
+  await prisma.availabilitySlot.create({
+    data: {
+      appointmentId: aptScheduling.id,
+      userId: user4.id,
+      startTime: new Date('2026-03-10T11:00:00'),
+      endTime: new Date('2026-03-10T13:00:00'),
+    },
+  });
+
+  // 3. Accepted + COMPLETED visit + documents (Valentina → Maria's room in Teusaquillo)
+  const appDocuments = await prisma.application.create({
     data: {
       propertyId: property3.id,
       applicantId: user6.id,
       message: 'Soy estudiante de medicina, responsable y ordenada. Me interesa la habitacion.',
-      status: 'PENDING',
+      status: 'ACCEPTED',
     },
   });
 
-  console.log('  Applications: 3 created');
+  // Appointment completed
+  await prisma.appointment.create({
+    data: {
+      applicationId: appDocuments.id,
+      status: 'COMPLETED',
+      confirmedStart: new Date('2026-02-20T10:00:00'),
+      confirmedEnd: new Date('2026-02-20T11:00:00'),
+      confirmedById: user2.id,
+    },
+  });
+  // Documents: CC approved, WORK_CERT pending
+  await prisma.document.create({
+    data: {
+      applicationId: appDocuments.id,
+      uploadedById: user6.id,
+      type: 'CC',
+      status: 'APPROVED',
+      fileKey: 'documents/seed/cc-valentina.jpg',
+      fileName: 'cedula_valentina.jpg',
+      fileSize: 245000,
+      mimeType: 'image/jpeg',
+    },
+  });
+  await prisma.document.create({
+    data: {
+      applicationId: appDocuments.id,
+      uploadedById: user6.id,
+      type: 'WORK_CERT',
+      status: 'PENDING',
+      fileKey: 'documents/seed/work-cert-valentina.pdf',
+      fileName: 'certificado_laboral.pdf',
+      fileSize: 180000,
+      mimeType: 'application/pdf',
+    },
+  });
+
+  // 4. Full workflow complete — Lease ACTIVE (Diego → Ana's apt in Bocagrande)
+  const appLease = await prisma.application.create({
+    data: {
+      propertyId: property7.id,
+      applicantId: user9.id,
+      message: 'Me interesa el apartamento en Bocagrande para una temporada larga.',
+      status: 'ACCEPTED',
+    },
+  });
+
+  await prisma.appointment.create({
+    data: {
+      applicationId: appLease.id,
+      status: 'COMPLETED',
+      confirmedStart: new Date('2026-02-01T15:00:00'),
+      confirmedEnd: new Date('2026-02-01T16:00:00'),
+      confirmedById: user4.id,
+    },
+  });
+  await prisma.document.create({
+    data: {
+      applicationId: appLease.id,
+      uploadedById: user9.id,
+      type: 'CC',
+      status: 'APPROVED',
+      fileKey: 'documents/seed/cc-diego.jpg',
+      fileName: 'cedula_diego.jpg',
+      fileSize: 230000,
+      mimeType: 'image/jpeg',
+    },
+  });
+  await prisma.document.create({
+    data: {
+      applicationId: appLease.id,
+      uploadedById: user9.id,
+      type: 'WORK_CERT',
+      status: 'APPROVED',
+      fileKey: 'documents/seed/work-cert-diego.pdf',
+      fileName: 'certificado_laboral_diego.pdf',
+      fileSize: 195000,
+      mimeType: 'application/pdf',
+    },
+  });
+  await prisma.lease.create({
+    data: {
+      applicationId: appLease.id,
+      tenantId: user9.id,
+      propertyId: property7.id,
+      startDate: new Date('2026-03-01'),
+      endDate: new Date('2027-03-01'),
+      monthlyRent: 3500000,
+      status: 'ACTIVE',
+      signedAt: new Date('2026-02-15'),
+    },
+  });
+
+  console.log('  Applications: 4 created (1 pending, 1 scheduling, 1 documents, 1 lease)');
+  console.log('  Appointments: 3 created');
+  console.log('  Availability slots: 3 created');
+  console.log('  Documents: 4 created');
+  console.log('  Leases: 1 created');
 
   // ============================================================
   // SUMMARY
@@ -1168,13 +1302,17 @@ async function main() {
   console.log('    mariana@test.com — ROOMMATE seeker');
   console.log('  Properties: 12');
   console.log('  Roommate profiles: 14');
-  console.log('  Swipes: 14 (Julian has swiped 3 people)');
-  console.log('  Matches: 4 (Julian has 2: Ana + Andres)');
+  console.log('  Swipes: 14');
+  console.log('  Matches: 4');
   console.log('  Conversations: 4 (with messages)');
   console.log('  Messages: 5');
   console.log('  Ratings: 3');
   console.log('  Property views: 8');
-  console.log('  Applications: 3');
+  console.log('  Workflow:');
+  console.log('    App 1: julian→maria (PENDING)');
+  console.log('    App 2: ana→carlos (ACCEPTED, scheduling with slots)');
+  console.log('    App 3: valentina→maria (ACCEPTED, visit done, uploading docs)');
+  console.log('    App 4: diego→ana (ACCEPTED, full workflow, lease ACTIVE)');
 }
 
 main()

@@ -13,6 +13,8 @@ import { RoommateSwipePage } from './pages/RoommateSwipePage';
 import { MatchesPage } from './pages/MatchesPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { ApplicationsPage } from './pages/ApplicationsPage';
+import { ApplicationWorkflowPage } from './pages/ApplicationWorkflowPage';
+import { LeasesPage } from './pages/LeasesPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 export default function App() {
@@ -37,6 +39,8 @@ export default function App() {
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/messages/:conversationId" element={<MessagesPage />} />
           <Route path="/applications" element={<ApplicationsPage />} />
+          <Route path="/applications/:id/workflow" element={<ApplicationWorkflowPage />} />
+          <Route path="/leases" element={<LeasesPage />} />
         </Route>
       </Route>
 

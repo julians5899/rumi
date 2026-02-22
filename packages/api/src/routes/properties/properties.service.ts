@@ -112,7 +112,10 @@ export async function getPropertiesByOwner(cognitoSub: string) {
   const user = await prisma.user.findUniqueOrThrow({ where: { cognitoSub } });
   return prisma.property.findMany({
     where: { ownerId: user.id },
-    include: { images: { orderBy: { order: 'asc' } } },
+    include: {
+      images: { orderBy: { order: 'asc' } },
+      _count: { select: { applications: true } },
+    },
     orderBy: { createdAt: 'desc' },
   });
 }

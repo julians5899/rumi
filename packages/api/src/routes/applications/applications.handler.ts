@@ -22,3 +22,9 @@ export async function updateApplicationStatusHandler(request: FastifyRequest, re
   const application = await applicationsService.updateApplicationStatus(request.user!.sub, id, status);
   return reply.send(application);
 }
+
+export async function getApplicationWorkflowHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const workflow = await applicationsService.getApplicationWorkflow(request.user!.sub, id);
+  return reply.send(workflow);
+}
