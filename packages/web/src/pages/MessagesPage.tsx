@@ -179,13 +179,22 @@ function ConversationList({
 function ChatView({
   conversationId,
   participant,
-  userId,
 }: {
   conversationId: string;
   participant: Participant | undefined;
-  userId: string;
 }) {
+  const { user } = useAuthStore();
+  const userId = user?.userId || '';
   const { messages, sendMessage, isConnected, isLoading, error, blockedAt } = useChat({ conversationId });
+
+  // Debug: log userId vs senderId to find mismatch
+  useEffect(() => {
+    if (messages.length > 0 && userId) {
+      console.log('[ChatView] userId from store:', userId);
+      console.log('[ChatView] first message senderId:', messages[0].senderId);
+      console.log('[ChatView] match?', messages[0].senderId === userId);
+    }
+  }, [messages, userId]);
   const [input, setInput] = useState('');
   const [sendError, setSendError] = useState('');
   const [sending, setSending] = useState(false);
@@ -269,7 +278,7 @@ function ChatView({
           </div>
         )}
 
-        {!isLoading &&
+        {!isLoading && userId &&
           messages.map((msg, idx) => {
             const isMine = msg.senderId === userId;
             const showDate = shouldShowDateSeparator(
@@ -437,7 +446,6 @@ export function MessagesPage() {
             <ChatView
               conversationId={conversationId}
               participant={activeConversation?.participant}
-              userId={userId}
             />
           ) : (
             <div className="hidden md:flex flex-col items-center justify-center h-full text-center px-8">
