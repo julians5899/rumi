@@ -36,6 +36,35 @@ export async function registerLocal(
 ) {
   const prisma = getPrisma();
   const hashedPassword = await bcrypt.hash(password, 12);
+
+  // Check if a user with this email already exists
+  const existing = await prisma.user.findUnique({ where: { email } });
+
+  if (existing) {
+    // Account exists and is active — cannot register again
+    if (!existing.deletedAt) {
+      return 'EXISTS';
+    }
+
+    // Account was soft-deleted — reactivate it with new data
+    const user = await prisma.user.update({
+      where: { email },
+      data: {
+        password: hashedPassword,
+        firstName,
+        lastName,
+        deletedAt: null,
+        seekingMode: 'ROOMMATE',
+        age: extra?.age ?? null,
+        occupation: extra?.occupation ?? null,
+        nationality: extra?.nationality ?? null,
+        gender: extra?.gender ?? null,
+      },
+    });
+
+    return excludePassword(user);
+  }
+
   const localSub = `local-${randomUUID()}`;
 
   const user = await prisma.user.create({
@@ -63,6 +92,11 @@ export async function loginLocal(email: string, password: string) {
 
   if (!user || !user.password) {
     return null;
+  }
+
+  // Block login for soft-deleted accounts
+  if (user.deletedAt) {
+    return 'DELETED';
   }
 
   const valid = await bcrypt.compare(password, user.password);

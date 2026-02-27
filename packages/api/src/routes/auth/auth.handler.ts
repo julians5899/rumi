@@ -17,12 +17,22 @@ export async function registerHandler(request: FastifyRequest, reply: FastifyRep
   }
 
   const body = registerSchema.parse(request.body);
-  const user = await authService.registerLocal(body.email, body.password, body.firstName, body.lastName, {
+  const result = await authService.registerLocal(body.email, body.password, body.firstName, body.lastName, {
     age: body.age ?? null,
     occupation: body.occupation ?? null,
     nationality: body.nationality ?? null,
     gender: body.gender ?? null,
   });
+
+  if (result === 'EXISTS') {
+    return reply.status(409).send({
+      error: 'Conflict',
+      message: 'Ya existe una cuenta con este correo electronico',
+      statusCode: 409,
+    });
+  }
+
+  const user = result;
   const token = signLocalToken({ sub: user.cognitoSub, email: user.email });
 
   return reply.status(201).send({
@@ -50,15 +60,25 @@ export async function loginHandler(request: FastifyRequest, reply: FastifyReply)
   }
 
   const body = loginSchema.parse(request.body);
-  const user = await authService.loginLocal(body.email, body.password);
+  const result = await authService.loginLocal(body.email, body.password);
 
-  if (!user) {
+  if (result === 'DELETED') {
     return reply.status(401).send({
       error: 'Unauthorized',
-      message: 'Correo o contraseña incorrectos',
+      message: 'ACCOUNT_NOT_FOUND',
       statusCode: 401,
     });
   }
+
+  if (!result) {
+    return reply.status(401).send({
+      error: 'Unauthorized',
+      message: 'ACCOUNT_NOT_FOUND',
+      statusCode: 401,
+    });
+  }
+
+  const user = result;
 
   const token = signLocalToken({ sub: user.cognitoSub, email: user.email });
 

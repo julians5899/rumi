@@ -199,6 +199,10 @@ export const t = {
     account: 'Cuenta',
     personalInfo: 'Informacion personal',
     yearsOld: 'años',
+    deleteAccount: 'Eliminar cuenta',
+    deleteAccountConfirm: '¿Estas seguro de que quieres eliminar tu cuenta?',
+    deleteAccountMessage: 'Esta accion desactivara tu cuenta. No podras iniciar sesion nuevamente.',
+    accountDeleted: 'Cuenta eliminada exitosamente',
   },
   gender: {
     MALE: 'Masculino',

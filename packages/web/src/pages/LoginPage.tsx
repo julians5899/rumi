@@ -36,15 +36,19 @@ export function LoginPage() {
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string; name?: string };
 
-      // Handle Cognito-specific errors
-      if (error.name === 'NotAuthorizedException') {
+      // Handle specific error codes
+      const serverMessage = error.response?.data?.message;
+
+      if (serverMessage === 'ACCOUNT_NOT_FOUND') {
+        setError('ACCOUNT_NOT_FOUND');
+      } else if (error.name === 'NotAuthorizedException') {
         setError('Correo o contraseña incorrectos');
       } else if (error.name === 'UserNotFoundException') {
         setError('No existe una cuenta con este correo');
       } else if (error.name === 'UserNotConfirmedException' || error.message === 'CONFIRM_SIGN_UP_REQUIRED') {
         setError('Tu cuenta no ha sido verificada. Revisa tu correo electronico.');
       } else {
-        setError(error.response?.data?.message || error.message || 'Error al iniciar sesion');
+        setError(serverMessage || error.message || 'Error al iniciar sesion');
       }
     } finally {
       setLoading(false);
@@ -56,7 +60,17 @@ export function LoginPage() {
       <h2 className="text-2xl font-bold text-rumi-text mb-1">{t.auth.login}</h2>
       <p className="text-sm text-rumi-text/40 mb-6">Ingresa a tu cuenta para continuar</p>
 
-      <ErrorAlert message={error} onDismiss={() => setError('')} className="mb-4" />
+      {error === 'ACCOUNT_NOT_FOUND' ? (
+        <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800">
+          Esta cuenta no existe. ¡Intenta{' '}
+          <Link to="/register" className="font-semibold text-rumi-primary hover:underline">
+            registrandote
+          </Link>
+          !
+        </div>
+      ) : (
+        <ErrorAlert message={error} onDismiss={() => setError('')} className="mb-4" />
+      )}
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>

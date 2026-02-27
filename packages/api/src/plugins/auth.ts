@@ -1,5 +1,6 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { getPrisma } from '../lib/prisma';
 
 // Extend Fastify types
 declare module 'fastify' {
@@ -58,6 +59,24 @@ async function authPlugin(app: FastifyInstance) {
         message: 'Token invalido o expirado',
         statusCode: 401,
       });
+    }
+
+    // Check if account has been soft-deleted
+    try {
+      const prisma = getPrisma();
+      const user = await prisma.user.findUnique({
+        where: { cognitoSub: request.user!.sub },
+        select: { deletedAt: true },
+      });
+      if (user?.deletedAt) {
+        return reply.status(401).send({
+          error: 'Unauthorized',
+          message: 'ACCOUNT_NOT_FOUND',
+          statusCode: 401,
+        });
+      }
+    } catch {
+      // If DB check fails, allow request to proceed (don't block auth on DB errors)
     }
   });
 

@@ -12,7 +12,8 @@ import { Button } from '../components/ui/Button';
 import { Avatar } from '../components/ui/Avatar';
 import { LoadingState } from '../components/ui/LoadingState';
 import { ErrorAlert } from '../components/ui/ErrorAlert';
-import { IconEdit, IconLogout } from '../components/ui/Icons';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { IconEdit, IconLogout, IconTrash } from '../components/ui/Icons';
 import { OnboardingWizard } from '../components/onboarding/OnboardingWizard';
 import {
   LOOKING_FOR_OPTIONS,
@@ -152,9 +153,25 @@ export function ProfilePage() {
     }
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await apiClient.delete('/users/me');
+      logout();
+      navigate('/login', { replace: true });
+    } catch {
+      setError(t.common.error);
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   if (loading) return <LoadingState text={t.common.loading} />;
@@ -427,6 +444,29 @@ export function ProfilePage() {
           <Button variant="danger" fullWidth size="lg" icon={<IconLogout className="w-4 h-4" />} onClick={handleLogout}>
             {t.auth.logout}
           </Button>
+
+          <Button
+            variant="outline"
+            fullWidth
+            size="lg"
+            icon={<IconTrash className="w-4 h-4" />}
+            onClick={() => setShowDeleteConfirm(true)}
+            className="mt-3 !border-red-300 !text-red-600 hover:!bg-red-50"
+          >
+            {t.profile.deleteAccount}
+          </Button>
+
+          <ConfirmDialog
+            isOpen={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={handleDeleteAccount}
+            title={t.profile.deleteAccountConfirm}
+            message={t.profile.deleteAccountMessage}
+            confirmLabel={t.profile.deleteAccount}
+            cancelLabel={t.common.cancel}
+            variant="danger"
+            loading={deleting}
+          />
         </>
       )}
     </div>
