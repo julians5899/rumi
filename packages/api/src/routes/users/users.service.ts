@@ -32,6 +32,15 @@ export async function updatePreferences(cognitoSub: string, preferences: unknown
   });
 }
 
+export async function softDeleteUser(cognitoSub: string) {
+  const prisma = getPrisma();
+  return prisma.user.update({
+    where: { cognitoSub },
+    data: { deletedAt: new Date() },
+    omit: omitPassword,
+  });
+}
+
 export async function getPublicProfile(userId: string) {
   const prisma = getPrisma();
   return prisma.user.findUnique({

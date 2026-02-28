@@ -29,6 +29,11 @@ export async function updatePreferencesHandler(request: FastifyRequest, reply: F
   return reply.send(user);
 }
 
+export async function deleteAccountHandler(request: FastifyRequest, reply: FastifyReply) {
+  await usersService.softDeleteUser(request.user!.sub);
+  return reply.send({ message: 'Cuenta eliminada exitosamente' });
+}
+
 export async function getPublicProfileHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const profile = await usersService.getPublicProfile(id);

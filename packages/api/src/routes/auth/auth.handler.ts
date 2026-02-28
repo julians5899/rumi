@@ -17,12 +17,31 @@ export async function registerHandler(request: FastifyRequest, reply: FastifyRep
   }
 
   const body = registerSchema.parse(request.body);
-  const user = await authService.registerLocal(body.email, body.password, body.firstName, body.lastName, {
-    age: body.age ?? null,
+  const result = await authService.registerLocal(body.email, body.password, body.firstName, body.lastName, {
+    dateOfBirth: body.dateOfBirth ?? null,
     occupation: body.occupation ?? null,
     nationality: body.nationality ?? null,
     gender: body.gender ?? null,
+    language: body.language ?? [],
   });
+
+  if (result === 'UNDERAGE') {
+    return reply.status(400).send({
+      error: 'Bad Request',
+      message: 'Debes tener al menos 18 años para registrarte',
+      statusCode: 400,
+    });
+  }
+
+  if (result === 'EXISTS') {
+    return reply.status(409).send({
+      error: 'Conflict',
+      message: 'Ya existe una cuenta con este correo electronico',
+      statusCode: 409,
+    });
+  }
+
+  const user = result;
   const token = signLocalToken({ sub: user.cognitoSub, email: user.email });
 
   return reply.status(201).send({
@@ -35,9 +54,11 @@ export async function registerHandler(request: FastifyRequest, reply: FastifyRep
       cognitoSub: user.cognitoSub,
       seekingMode: user.seekingMode,
       age: user.age,
+      dateOfBirth: user.dateOfBirth ? (user.dateOfBirth as Date).toISOString() : null,
       occupation: user.occupation,
       nationality: user.nationality,
       gender: user.gender,
+      language: user.language,
       preferences: (user as Record<string, unknown>).preferences ?? null,
     },
   });
@@ -50,15 +71,25 @@ export async function loginHandler(request: FastifyRequest, reply: FastifyReply)
   }
 
   const body = loginSchema.parse(request.body);
-  const user = await authService.loginLocal(body.email, body.password);
+  const result = await authService.loginLocal(body.email, body.password);
 
-  if (!user) {
+  if (result === 'DELETED') {
     return reply.status(401).send({
       error: 'Unauthorized',
-      message: 'Correo o contraseña incorrectos',
+      message: 'ACCOUNT_NOT_FOUND',
       statusCode: 401,
     });
   }
+
+  if (!result) {
+    return reply.status(401).send({
+      error: 'Unauthorized',
+      message: 'ACCOUNT_NOT_FOUND',
+      statusCode: 401,
+    });
+  }
+
+  const user = result;
 
   const token = signLocalToken({ sub: user.cognitoSub, email: user.email });
 
@@ -72,9 +103,11 @@ export async function loginHandler(request: FastifyRequest, reply: FastifyReply)
       cognitoSub: user.cognitoSub,
       seekingMode: user.seekingMode,
       age: user.age,
+      dateOfBirth: user.dateOfBirth ? (user.dateOfBirth as Date).toISOString() : null,
       occupation: user.occupation,
       nationality: user.nationality,
       gender: user.gender,
+      language: user.language,
       preferences: (user as Record<string, unknown>).preferences ?? null,
     },
   });
